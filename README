@@ -1,0 +1,9 @@
+In order to install libUSB on Ubuntu do the following:
+
+sudo apt-get install libusb-1.0-0-dev
+
+In order to build the library and the two examples do:
+
+cd build
+cmake ../
+make
