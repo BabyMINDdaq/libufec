@@ -2,11 +2,9 @@
 #include <stdlib.h>     /* malloc, free, rand */
 #include <libusb-1.0/libusb.h>
 
-#include "libbmfeb.h"
+#include "libufe.h"
 
-#include "BMFEBDef.h"
-
-#define BM_VENDOR_ID 0x206b
+#include "UFEDef.h"
 
 bool is_bm_feb(libusb_device *dev) {
 
@@ -17,13 +15,13 @@ bool is_bm_feb(libusb_device *dev) {
     return false;
   }
 
-  if (desc.idVendor == BM_VENDOR_ID)
+  if (desc.idVendor == UFE_VENDOR_ID)
     return true;
 
   return false;
 }
 
-size_t get_bmfeb_device_list(libusb_context *ctx, libusb_device ***feb_devs) {
+size_t get_ufe_device_list(libusb_context *ctx, libusb_device ***feb_devs) {
   libusb_device **devs;
   size_t n_devs = libusb_get_device_list(ctx, &devs); //get the list of devices
   size_t n_febs = 0;
@@ -57,27 +55,27 @@ size_t get_bmfeb_device_list(libusb_context *ctx, libusb_device ***feb_devs) {
 }
 
 
-int get_version_req(libusb_device_handle *bmfeb, uint8_t *data) {
+int get_version_req(libusb_device_handle *ufe, uint8_t *data) {
 /** TODO */
 
   return 0;
 }
 
-int get_buff_size_req(libusb_device_handle *bmfeb, uint8_t *data) {
+int get_buff_size_req(libusb_device_handle *ufe, uint8_t *data) {
 /** TODO */
 
   return 0;
 }
 
-int enable_led_req(libusb_device_handle *bmfeb, bool enable) {
+int enable_led_req(libusb_device_handle *ufe, bool enable) {
 
   uint16_t value = (uint16_t)(!enable);
   uint8_t *data = (uint8_t*) malloc(1);
   *data = 7;
 
-  int status = libusb_control_transfer( bmfeb,
+  int status = libusb_control_transfer( ufe,
                                         CLASS_REQUEST | LIBUSB_ENDPOINT_IN,
-                                        BMFEB_LED_OFF_REQ,
+                                        UFE_LED_OFF_REQ,
                                         value,
                                         0,
                                         data,
@@ -89,15 +87,15 @@ int enable_led_req(libusb_device_handle *bmfeb, bool enable) {
   return status;
 }
 
-int ep2in_wrappup_req(libusb_device_handle *bmfeb, uint8_t *data) {
+int ep2in_wrappup_req(libusb_device_handle *ufe, uint8_t *data) {
 
   uint16_t value = 2;
   uint8_t *data_ = (uint8_t*) malloc(1);
   *data_ = 7;
 
-  int status = libusb_control_transfer( bmfeb,
+  int status = libusb_control_transfer( ufe,
                                         CLASS_REQUEST | LIBUSB_ENDPOINT_IN,
-                                        BMFEB_EP2IN_WRAPPUP_REQ,
+                                        UFE_EP2IN_WRAPPUP_REQ,
                                         value,
                                         0,
                                         data_,
@@ -109,13 +107,13 @@ int ep2in_wrappup_req(libusb_device_handle *bmfeb, uint8_t *data) {
   return status;
 }
 
-int epxin_reset_req(libusb_device_handle *bmfeb, uint8_t *data) {
+int epxin_reset_req(libusb_device_handle *ufe, uint8_t *data) {
 /** TODO */
 
   return 0;
 }
 
-int send_command_req( libusb_device_handle *bmfeb,
+int send_command_req( libusb_device_handle *ufe,
                       int board_id,
                       int command_id,
                       int argc,
@@ -124,17 +122,17 @@ int send_command_req( libusb_device_handle *bmfeb,
   uint32_t *cmd = (uint32_t*) malloc(4);
 
   *cmd  = CMD_REQ_HEADER_ID;
-  *cmd |= (board_id << BMFEB_BOARD_ID_SHIFT) & BMFEB_BOARD_ID_MASK;
-  *cmd |= (command_id << BMFEB_CMD_ID_SHIFT) & BMFEB_CMD_ID_MASK;
+  *cmd |= (board_id << UFE_BOARD_ID_SHIFT) & UFE_BOARD_ID_MASK;
+  *cmd |= (command_id << UFE_CMD_ID_SHIFT) & UFE_CMD_ID_MASK;
 
   if (argc == 1)
-    *cmd |= argv[0] & BMFEB_ARGUMENT_MASK;
+    *cmd |= argv[0] & UFE_ARGUMENT_MASK;
 
   printf("command: %4x \n", *cmd);
 
   int size = (argc > 1)? argc*4+8 : 4;
   int actual;
-  int status = libusb_bulk_transfer( bmfeb,
+  int status = libusb_bulk_transfer( ufe,
                                      (0x2 | LIBUSB_ENDPOINT_OUT),
                                      (uint8_t*) cmd,
                                      size,
@@ -151,7 +149,7 @@ int send_command_req( libusb_device_handle *bmfeb,
   return 0;
 }
 
-int get_command_answer( libusb_device_handle *bmfeb,
+int get_command_answer( libusb_device_handle *ufe,
                         int board_id,
                         int command_id,
                         int argc,
@@ -159,7 +157,7 @@ int get_command_answer( libusb_device_handle *bmfeb,
 
   int size = (argc > 1)? argc*4+8 : 4;
   int actual;
-  int status = libusb_bulk_transfer( bmfeb,
+  int status = libusb_bulk_transfer( ufe,
                                      (0x82 | LIBUSB_ENDPOINT_IN),
                                      (uint8_t*)*answer,
                                      size,
@@ -173,31 +171,31 @@ int get_command_answer( libusb_device_handle *bmfeb,
     return status;
   }
 
-  if ( (*answer[0] & BMFEB_DW_ID_MASK) >> BMFEB_DW_ID_SHIFT != CMD_HEADER_ID  ||
-       (*answer[0] & BMFEB_BOARD_ID_MASK) >> BMFEB_BOARD_ID_SHIFT != board_id ||
-       (*answer[0] & BMFEB_CMD_ID_MASK) >> BMFEB_CMD_ID_SHIFT != command_id ) {
+  if ( (*answer[0] & UFE_DW_ID_MASK) >> UFE_DW_ID_SHIFT != CMD_HEADER_ID  ||
+       (*answer[0] & UFE_BOARD_ID_MASK) >> UFE_BOARD_ID_SHIFT != board_id ||
+       (*answer[0] & UFE_CMD_ID_MASK) >> UFE_CMD_ID_SHIFT != command_id ) {
     printf("Inconsistent command header\n");
-    return BMFEB_ERROR_INVALID_CMD_ANSWER;
+    return UFE_ERROR_INVALID_CMD_ANSWER;
   }
 
-  **answer &= BMFEB_ARGUMENT_MASK;
+  **answer &= UFE_ARGUMENT_MASK;
 
   if (argc > 1) {
     int i;
     for (i=1; i<argc+1; ++i) {
-      if ( (*answer[i] & BMFEB_DW_ID_MASK) >> BMFEB_DW_ID_SHIFT != CMD_ARG_ID) {
+      if ( (*answer[i] & UFE_DW_ID_MASK) >> UFE_DW_ID_SHIFT != CMD_ARG_ID) {
         printf("Inconsistent command argument\n");
-        return BMFEB_ERROR_INVALID_CMD_ANSWER;
+        return UFE_ERROR_INVALID_CMD_ANSWER;
       }
 
-      *answer[i] &= (~BMFEB_DW_ID_MASK);
+      *answer[i] &= (~UFE_DW_ID_MASK);
     }
 
-    if ( (*answer[argc+1] & BMFEB_DW_ID_MASK) >> BMFEB_DW_ID_SHIFT != CMD_TRAILER_ID  ||
-         (*answer[argc+1] & BMFEB_BOARD_ID_MASK) >> BMFEB_BOARD_ID_SHIFT != board_id ||
-         (*answer[argc+1] & BMFEB_CMD_ID_MASK) >> BMFEB_CMD_ID_SHIFT != command_id ) {
+    if ( (*answer[argc+1] & UFE_DW_ID_MASK) >> UFE_DW_ID_SHIFT != CMD_TRAILER_ID  ||
+         (*answer[argc+1] & UFE_BOARD_ID_MASK) >> UFE_BOARD_ID_SHIFT != board_id ||
+         (*answer[argc+1] & UFE_CMD_ID_MASK) >> UFE_CMD_ID_SHIFT != command_id ) {
       printf("Inconsistent command trailer\n");
-      return BMFEB_ERROR_INVALID_CMD_ANSWER;
+      return UFE_ERROR_INVALID_CMD_ANSWER;
     }
   }
 

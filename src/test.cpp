@@ -1,11 +1,10 @@
 /** This is an example application written in C++
  */
 
-
 #include <iostream>
 #include <unistd.h>
 
-#include "libbmfeb.h"
+#include "libufe.h"
 
 using namespace std;
 
@@ -29,7 +28,7 @@ int main(int argc, char** argv) {
   libusb_set_debug(ctx, 3); //set verbosity level to 3
 
   libusb_device **febs;
-  size_t n_bmfebs = get_bmfeb_device_list(ctx, &febs);
+  size_t n_bmfebs = get_ufe_device_list(ctx, &febs);
 
   cout << "BM FEBs found: " << n_bmfebs << " \n";
 

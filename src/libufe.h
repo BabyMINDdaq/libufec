@@ -1,5 +1,5 @@
-#ifndef LIBBMFEB_H
-#define LIBBMFEB_H 1
+#ifndef LIBUFE_H
+#define LIBUFE_H 1
 
 #include <stdbool.h>
 #include <libusb-1.0/libusb.h>
@@ -8,31 +8,31 @@
 extern "C" {
 #endif
 
-size_t get_bmfeb_device_list(libusb_context *ctx, libusb_device ***feb_devs);
+size_t get_ufe_device_list(libusb_context *ctx, libusb_device ***feb_devs);
 
-int get_version_req(libusb_device_handle *bmfeb, uint8_t *data);
+int get_version_req(libusb_device_handle *ufe, uint8_t *data);
 
-int get_buff_size_req(libusb_device_handle *bmfeb, uint8_t *data);
+int get_buff_size_req(libusb_device_handle *ufe, uint8_t *data);
 
-int enable_led_req(libusb_device_handle *bmfeb, bool enable);
+int enable_led_req(libusb_device_handle *ufe, bool enable);
 
-int ep2in_wrappup_req(libusb_device_handle *bmfeb, uint8_t *data);
+int ep2in_wrappup_req(libusb_device_handle *ufe, uint8_t *data);
 
-int epxin_reset_req(libusb_device_handle *bmfeb, uint8_t *data);
+int epxin_reset_req(libusb_device_handle *ufe, uint8_t *data);
 
-int send_command_req( libusb_device_handle *bmfeb,
+int send_command_req( libusb_device_handle *ufe,
                       int board_id,
                       int command_id,
                       int argc,
                       uint32_t *argv);
 
-int get_command_answer( libusb_device_handle *bmfeb,
+int get_command_answer( libusb_device_handle *ufe,
                         int board_id,
                         int command_id,
                         int argc,
                         uint32_t **answer);
 
-enum bmfeb_cmd_id {
+enum ufe_cmd_id {
   DATA_READOUT_CMD_ID     = 0x0,
   FIRMWARE_VERSION_CMD_ID = 0x01,
   SET_DIRECT_PARAM_CMD_ID = 0x02,
@@ -44,7 +44,7 @@ enum bmfeb_cmd_id {
   IDLE_CMD_ID             = 0x1F
 };
 
-enum bmfeb_set_dir_par_args {
+enum ufe_set_dir_par_args {
   SDP_RSSR = 0x1,
   SDP_RSTA = 0x2,
   SDP_RTTA = 0x4,
@@ -60,7 +60,7 @@ enum bmfeb_set_dir_par_args {
   SDP_FCLR = 0x8000
 };
 
-enum bmfeb_read_status_args {
+enum ufe_read_status_args {
   RS_GTEN       = 0x1,
   RS_AVE        = 0x2,
   RS_L0F_ERR    = 0x4,

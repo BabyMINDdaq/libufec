@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "libbmfeb.h"
+#include "libufe.h"
 
 
 int main(int argc, char** argv) {
@@ -30,7 +30,7 @@ int main(int argc, char** argv) {
   libusb_set_debug(ctx, 3); //set verbosity level to 3
 
   libusb_device **febs;
-  size_t n_bmfebs = get_bmfeb_device_list(ctx, &febs);
+  size_t n_bmfebs = get_ufe_device_list(ctx, &febs);
 
   printf("BM FEBs found: %zu \n", n_bmfebs);
 
@@ -111,7 +111,7 @@ int main(int argc, char** argv) {
                         &data);
 
     int hv = (*data & RS_HVON)? 1:0;
-    printf("HV On: %i", hv);
+    printf("HV On: %i \n", hv);
 
     libusb_close(dev_handle); //close the device we opened
 
