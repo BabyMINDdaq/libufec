@@ -116,21 +116,54 @@ int epxin_reset_req(libusb_device_handle *ufe, uint8_t *data) {
 int send_command_req( libusb_device_handle *ufe,
                       int board_id,
                       int command_id,
+                      int sub_cmd_id,
                       int argc,
-                      uint32_t *argv) {
+                      uint16_t *argv) {
 
-  uint32_t *cmd = (uint32_t*) malloc(4);
+  // Allocate memory for the command according to the number of arguments.
+  int size = (argc > 1)? (argc+2)*4 : 4;
+  uint32_t *cmd = malloc(size);
 
-  *cmd  = CMD_REQ_HEADER_ID;
+  // Set the Header of the command.
+  *cmd  = (CMD_HEADER_ID << UFE_DW_ID_SHIFT);;
   *cmd |= (board_id << UFE_BOARD_ID_SHIFT) & UFE_BOARD_ID_MASK;
   *cmd |= (command_id << UFE_CMD_ID_SHIFT) & UFE_CMD_ID_MASK;
 
-  if (argc == 1)
+  // If the command has only one argument add it to the header of the command.
+  if (argc == 1) {
     *cmd |= argv[0] & UFE_ARGUMENT_MASK;
+  }
 
-  printf("command: %4x \n", *cmd);
+  // If the command has moltiple arguments add the number of arguments to the header of the command.
+  if (argc > 1) {
+    *cmd |= argc & UFE_ARG_FR_NUM_MASK;
+  }
 
-  int size = (argc > 1)? argc*4+8 : 4;
+  // Add the Sub Command Id if any.
+  if (sub_cmd_id > 0) {
+    *cmd |= (sub_cmd_id << UFE_SUBCMD_ID_SHIFT) & UFE_SUBCMD_ID_MASK;
+  }
+
+  printf("command: 0x%4x \n", *cmd);
+
+  if (argc > 1) {
+    int xArg = 0;
+    // Set the data words of the arguments.
+    while ( xArg < argc) {
+      cmd[xArg+1] = argv[xArg];
+      cmd[xArg+1] |= (CMD_ARG_ID << UFE_DW_ID_SHIFT);
+      cmd[xArg+1] |= (xArg << UEF_FRAME_INDEX_SHIFT) & UEF_FRAME_INDEX_MASK;
+      printf("arg: 0x%4x \n", cmd[xArg+1]);
+      ++xArg;
+    }
+
+    // Set the trailer.
+    cmd[argc+1] = (CMD_TRAILER_ID << UFE_DW_ID_SHIFT);
+    cmd[argc+1] |= (board_id << UFE_BOARD_ID_SHIFT) & UFE_BOARD_ID_MASK;
+    cmd[argc+1] |= (command_id << UFE_CMD_ID_SHIFT) & UFE_CMD_ID_MASK;
+    printf("trailer: 0x%4x \n", cmd[xArg+1]);
+  }
+
   int actual;
   int status = libusb_bulk_transfer( ufe,
                                      (0x2 | LIBUSB_ENDPOINT_OUT),
@@ -140,12 +173,13 @@ int send_command_req( libusb_device_handle *ufe,
                                      1000);
 
   if(status == 0 && actual == size) //we wrote the 4 bytes successfully
-    printf("Command sent\n");
+    printf("Command sent (%i, %i)\n", status, actual);
   else {
     printf("Command not sent Error (%i, %i)\n", status, actual);
     return status;
   }
 
+  free(cmd);
   return 0;
 }
 
@@ -153,52 +187,56 @@ int get_command_answer( libusb_device_handle *ufe,
                         int board_id,
                         int command_id,
                         int argc,
-                        uint32_t **answer) {
+                        uint16_t **argv) {
 
-  int size = (argc > 1)? argc*4+8 : 4;
+  // Allocate memory for the answer according to the number of arguments.
+  int size = (argc > 1)? (argc+2*4) : 4;
+  uint32_t *answer = malloc(size);
+
   int actual;
   int status = libusb_bulk_transfer( ufe,
                                      (0x82 | LIBUSB_ENDPOINT_IN),
-                                     (uint8_t*)*answer,
+                                     (uint8_t*) answer,
                                      size,
                                      &actual,
                                      1000);
 
   if(status == 0 && actual == size) //we wrote the 4 bytes successfully
-    printf("Answer resieved: %4x \n", **answer);
+    printf("Answer resieved (%i, %i): %4x\n", status, actual, *answer);
   else {
-    printf("Answer not resieved Error (%i, %i)\n", status, actual);
+    printf("Answer not resieved (%i, %i): Error\n", status, actual);
     return status;
   }
 
-  if ( (*answer[0] & UFE_DW_ID_MASK) >> UFE_DW_ID_SHIFT != CMD_HEADER_ID  ||
-       (*answer[0] & UFE_BOARD_ID_MASK) >> UFE_BOARD_ID_SHIFT != board_id ||
-       (*answer[0] & UFE_CMD_ID_MASK) >> UFE_CMD_ID_SHIFT != command_id ) {
+  if ( (answer[0] & UFE_DW_ID_MASK) >> UFE_DW_ID_SHIFT != CMD_HEADER_ID  ||
+       (answer[0] & UFE_BOARD_ID_MASK) >> UFE_BOARD_ID_SHIFT != board_id ||
+       (answer[0] & UFE_CMD_ID_MASK) >> UFE_CMD_ID_SHIFT != command_id ) {
     printf("Inconsistent command header\n");
     return UFE_ERROR_INVALID_CMD_ANSWER;
   }
 
-  **answer &= UFE_ARGUMENT_MASK;
+  **argv = *answer & UFE_ARGUMENT_MASK;
 
   if (argc > 1) {
     int i;
     for (i=1; i<argc+1; ++i) {
-      if ( (*answer[i] & UFE_DW_ID_MASK) >> UFE_DW_ID_SHIFT != CMD_ARG_ID) {
+      if ( (answer[i] & UFE_DW_ID_MASK) >> UFE_DW_ID_SHIFT != CMD_ARG_ID) {
         printf("Inconsistent command argument\n");
         return UFE_ERROR_INVALID_CMD_ANSWER;
       }
 
-      *answer[i] &= (~UFE_DW_ID_MASK);
+      answer[i] &= (~UFE_DW_ID_MASK);
     }
 
-    if ( (*answer[argc+1] & UFE_DW_ID_MASK) >> UFE_DW_ID_SHIFT != CMD_TRAILER_ID  ||
-         (*answer[argc+1] & UFE_BOARD_ID_MASK) >> UFE_BOARD_ID_SHIFT != board_id ||
-         (*answer[argc+1] & UFE_CMD_ID_MASK) >> UFE_CMD_ID_SHIFT != command_id ) {
+    if ( (answer[argc+1] & UFE_DW_ID_MASK) >> UFE_DW_ID_SHIFT != CMD_TRAILER_ID  ||
+         (answer[argc+1] & UFE_BOARD_ID_MASK) >> UFE_BOARD_ID_SHIFT != board_id ||
+         (answer[argc+1] & UFE_CMD_ID_MASK) >> UFE_CMD_ID_SHIFT != command_id ) {
       printf("Inconsistent command trailer\n");
       return UFE_ERROR_INVALID_CMD_ANSWER;
     }
   }
 
+  free(answer);
   return 0;
 }
 

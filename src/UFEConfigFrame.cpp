@@ -1,7 +1,7 @@
 #include<sstream>
 
 #include "UFEConfigFrame.h"
-#include "UEFError.h"
+#include "UFEError.h"
 
 #define THROW_ERROR(location, json_doc, key) { \
   std::string message; \
@@ -11,7 +11,7 @@
   message += " Compulsory member >>"; \
   message += #key; \
   message += "<< is missing in the json configuration!"; \
-  throw UEFError(message, #location, UEFError::FATAL);}
+  throw UFEError(message, #location, UFEError::FATAL);}
 
 #define SET_MEMBER_BOOL(obj, json_doc, key, compulsory) \
 { if (json_doc.isMember(#key)) obj->key##_ = json_doc[#key].asBool(); \
@@ -50,6 +50,16 @@ void FirmwareVId::operator << (const Json::Value &fv_json) {
 }
 
 void Variable::operator << (const Json::Value &v_json) {
+  string type = v_json["$type"].asString();
+  if (type != "UnigeFrontEnd.Config.Variable") {
+    stringstream ss;
+    ss << v_json << endl;
+    ss << "*** This is not a Variable!";
+    throw UFEError( ss.str(),
+                    "void Variable::operator << (const Json::Value &v_json)" ,
+                    UFEError::FATAL);
+  }
+
   SET_MEMBER_INT(this, v_json, Default, 1)
   SET_MEMBER_INT(this, v_json, Min, 1)
   SET_MEMBER_INT(this, v_json, Max, 1)
@@ -93,26 +103,75 @@ void UFEConfigFrame::load(Json::Value conf) {
         HardwareVIds_.push_back(hv);
       }
 
-    if (conf.isMember("Board"))
-      if (conf["Board"].isMember("DirectParameters"))
-        if ( conf["Board"]["DirectParameters"].isMember("Variables") ) {
-           for (auto const& dp_var : conf["Board"]["DirectParameters"]["Variables"]) {
-//              cout << dp_var << endl;
-             Variable v;
-             v << dp_var;
+    if (conf.isMember("Board")) {
+      this->get_board_config(conf["Board"]);
+    }
 
-             MemoryLayout ml;
-             ml << dp_var["MemoryLayout"];
-//             cout << ml.Index_ << endl;
-             v.MemoryLayout_ = ml;
-             Board_.DirectParameters_.Variables_.push_back(v);
-           }
+    if (conf.isMember("Children")) {
+      for (auto const& children : conf["Children"]) {
+        if (children["Name"].asString() == "FPGA")
+          this->get_FPGA_config(children);
+        else if (children["Name"].asString() == "ASICS")
+          this->get_ASICS_config(children);
       }
+    }
 //   for (auto const& id : conf["Board"].getMemberNames()) {
 //     std::cout << id << std::endl;
 //   }
-  } catch (UEFError &e) {
+  } catch (UFEError &e) {
     cerr << e.GetDescription() << endl;
     cerr << e.GetLocation() << endl;
   }
+}
+
+void UFEConfigFrame::get_board_config(const Json::Value &conf) {
+  if (conf.isMember("DirectParameters"))
+    if (conf["DirectParameters"].isMember("Variables"))
+      for (auto const& dp_var : conf["DirectParameters"]["Variables"]) {
+//      cout << dp_var << endl;
+        Variable v;
+        v << dp_var;
+
+        MemoryLayout ml;
+        ml << dp_var["MemoryLayout"];
+//        cout << ml.Index_ << endl;
+        v.MemoryLayout_ = ml;
+        Board_.DirectParameters_.Variables_.push_back(v);
+      }
+
+  if (conf.isMember("DataReadoutParameters"))
+    if (conf["DataReadoutParameters"].isMember("Variables"))
+      for (auto const& drp_var : conf["DataReadoutParameters"]["Variables"]) {
+//         cout << drp_var << endl;
+        Variable v;
+        v << drp_var;
+
+        MemoryLayout ml;
+        ml << drp_var["MemoryLayout"];
+//        cout << ml.Index_ << endl;
+        v.MemoryLayout_ = ml;
+        Board_.DataReadoutParameters_.Variables_.push_back(v);
+      }
+
+  if (conf.isMember("StatusParameters"))
+    if (conf["StatusParameters"].isMember("Variables"))
+      for (auto const& sp_var : conf["StatusParameters"]["Variables"]) {
+//         cout << sp_var << endl;
+        Variable v;
+        v << sp_var;
+
+        MemoryLayout ml;
+        ml << sp_var["MemoryLayout"];
+//         cout << ml.Index_ << endl;
+        v.MemoryLayout_ = ml;
+        Board_.StatusParameters_.Variables_.push_back(v);
+      }
+}
+
+void UFEConfigFrame::get_ASICS_config(const Json::Value &conf) {
+  cout << conf << endl;
+}
+
+void UFEConfigFrame::get_FPGA_config(const Json::Value &conf) {
+//   cout << conf << endl;
 }

@@ -23,14 +23,15 @@ int epxin_reset_req(libusb_device_handle *ufe, uint8_t *data);
 int send_command_req( libusb_device_handle *ufe,
                       int board_id,
                       int command_id,
+                      int sub_cmd_id,
                       int argc,
-                      uint32_t *argv);
+                      uint16_t *argv);
 
 int get_command_answer( libusb_device_handle *ufe,
                         int board_id,
                         int command_id,
                         int argc,
-                        uint32_t **answer);
+                        uint16_t **argv);
 
 enum ufe_cmd_id {
   DATA_READOUT_CMD_ID     = 0x0,
@@ -43,6 +44,8 @@ enum ufe_cmd_id {
   ERROR_CMD_ID            = 0x1E,
   IDLE_CMD_ID             = 0x1F
 };
+
+#define NO_SUB_CMD_ID -1
 
 enum ufe_set_dir_par_args {
   SDP_RSSR = 0x1,

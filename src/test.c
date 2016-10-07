@@ -47,7 +47,7 @@ int main(int argc, char** argv) {
     enable_led_req(dev_handle, led);
     usleep(1);
 
-    uint32_t *data = (uint32_t*) malloc(4);
+    uint16_t *data = (uint16_t*) malloc(2);
     int board_id = 0, command_id;
 
     command_id = FIRMWARE_VERSION_CMD_ID;
@@ -55,6 +55,7 @@ int main(int argc, char** argv) {
     send_command_req( dev_handle,
                       board_id,
                       command_id,
+                      NO_SUB_CMD_ID,
                       1,
                       data);
 
@@ -77,6 +78,7 @@ int main(int argc, char** argv) {
     send_command_req( dev_handle,
                       board_id,
                       command_id,
+                      NO_SUB_CMD_ID,
                       1,
                       data);
 
@@ -97,6 +99,7 @@ int main(int argc, char** argv) {
     send_command_req( dev_handle,
                       board_id,
                       command_id,
+                      NO_SUB_CMD_ID,
                       0,
                       NULL);
 

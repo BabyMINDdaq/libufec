@@ -23,8 +23,10 @@ struct FirmwareVId {
 };
 
 struct MemoryLayout {
+  MemoryLayout()
+  : Index_(0), Increment_(-1), MsbFirst_(false), Absolute_(false) {}
   unsigned int Index_;
-  unsigned int Increment_;
+  int Increment_;
   bool MsbFirst_;
   bool Absolute_;
   std::vector<unsigned int> AbsoluteIndexes_;
@@ -44,14 +46,16 @@ struct Variable {
   void operator << (const Json::Value &v_json);
 };
 
-struct DirectParameters {
+struct Parameters {
   std::vector<Variable> Variables_;
 };
 
-
 struct Board {
-  DirectParameters DirectParameters_;
+  Parameters DirectParameters_;
+  Parameters DataReadoutParameters_;
+  Parameters StatusParameters_;
 };
+
 
 class UFEConfigFrame {
 public:
@@ -63,6 +67,11 @@ public:
   void load(Json::Value c);
 
 private:
+
+  void get_board_config(const Json::Value &c);
+  void get_ASICS_config(const Json::Value &c);
+  void get_FPGA_config(const Json::Value &c);
+
   std::string Name_;
   double Version_;
   int DeviceMemorySize_;

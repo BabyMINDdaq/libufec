@@ -3,6 +3,7 @@
 #include <fstream>
 #include <sstream>
 #include<json/json.h>
+#include <unistd.h>
 
 #include "libufe.h"
 #include "UFEConfigFrame.h"
@@ -32,9 +33,9 @@ int main (int argc, char **argv) {
     return 1;
   }
 
-  for (auto const& id : conf.getMemberNames()) {
-    std::cout << id << std::endl;
-  }
+//   for (auto const& id : conf.getMemberNames()) {
+//     std::cout << id << std::endl;
+//   }
 
   UFEConfigFrame c;
   c.load(conf);

@@ -35,17 +35,17 @@ int main(int argc, char** argv) {
   if (n_bmfebs > 0) {
     status = libusb_open(febs[0], &dev_handle);
     if(dev_handle == NULL) {
-      cout << "Cannot open device" << endl;
+      cout << "Cannot open device.\n";
       return 1;
     } else
-      cout << "Device Opened" << endl;
+      cout << "Device Opened.\n";
 
     libusb_free_device_list(febs, 1); //free the list, unref the devices in it
 
     enable_led_req(dev_handle, led);
     usleep(1);
 
-    uint32_t *data = new uint32_t;
+    uint16_t *data = new uint16_t;
     int board_id = 0, command_id;
 
     command_id = FIRMWARE_VERSION_CMD_ID;
@@ -53,6 +53,7 @@ int main(int argc, char** argv) {
     send_command_req( dev_handle,
                       board_id,
                       command_id,
+                      NO_SUB_CMD_ID,
                       1,
                       data);
 
@@ -75,6 +76,7 @@ int main(int argc, char** argv) {
     send_command_req( dev_handle,
                       board_id,
                       command_id,
+                      NO_SUB_CMD_ID,
                       1,
                       data);
 
@@ -95,6 +97,7 @@ int main(int argc, char** argv) {
     send_command_req( dev_handle,
                       board_id,
                       command_id,
+                      NO_SUB_CMD_ID,
                       0,
                       NULL);
 
