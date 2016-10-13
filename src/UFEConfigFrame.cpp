@@ -1,85 +1,37 @@
+#include<iostream>
 #include<sstream>
+#include<fstream>
 
 #include "UFEConfigFrame.h"
 #include "UFEError.h"
 
-#define THROW_ERROR(location, json_doc, key) { \
-  std::string message; \
-  if (json_doc.isMember("Name")) { \
-    message += "When reading "; \
-    message += json_doc["Name"].asString();} \
-  message += " Compulsory member >>"; \
-  message += #key; \
-  message += "<< is missing in the json configuration!"; \
-  throw UFEError(message, #location, UFEError::FATAL);}
-
-#define SET_MEMBER_BOOL(obj, json_doc, key, compulsory) \
-{ if (json_doc.isMember(#key)) obj->key##_ = json_doc[#key].asBool(); \
-  else if (compulsory) THROW_ERROR(SET_MEMBER_DOUBLE_ASSTRING, json_doc, key)}
-
-#define SET_MEMBER_INT(obj, json_doc, key, compulsory) \
-{ if (json_doc.isMember(#key)) obj->key##_ = json_doc[#key].asInt(); \
-  else if (compulsory) THROW_ERROR(SET_MEMBER_INT, json_doc, key)}
-
-#define SET_MEMBER_DOUBLE(obj, json_doc, key, compulsory) \
-{ if (json_doc.isMember(#key)) obj->key##_ = json_doc[#key].asDouble(); \
-  else if (compulsory) THROW_ERROR(SET_MEMBER_DOUBLE, json_doc, key) }
-
-#define SET_MEMBER_STRING(obj, json_doc, key, compulsory) \
-{ if (json_doc.isMember(#key)) obj->key##_ = json_doc[#key].asString(); \
-  else if (compulsory) THROW_ERROR(SET_MEMBER_STRING, json_doc, key) }
-
-#define SET_MEMBER_DOUBLE_ASSTRING(obj, json_doc, key, compulsory) \
-{ if (json_doc.isMember(#key)) { \
-  std::stringstream ss; ss << json_doc[#key].asString(); ss >> obj->key##_; } \
-  else if (compulsory) THROW_ERROR(SET_MEMBER_DOUBLE_ASSTRING, json_doc, key) }
-
 using namespace std;
 
-void HardwareVId::operator << (const Json::Value &fv_json) {
-  SET_MEMBER_INT(this, fv_json, Id, 1)
-  SET_MEMBER_STRING(this, fv_json, ShortName, 1)
-  SET_MEMBER_STRING(this, fv_json, FriendlyName, 1)
-}
+void UFEConfigBuffer::load_config_from_text(std::string file) {
+    uint32_t *data_32 = buffer_;
 
-void FirmwareVId::operator << (const Json::Value &fv_json) {
-  SET_MEMBER_INT(this, fv_json, MajorId, 1)
-  SET_MEMBER_INT(this, fv_json, MinorId, 1)
-  SET_MEMBER_STRING(this, fv_json, ShortName, 1)
-  SET_MEMBER_STRING(this, fv_json, FriendlyName, 1)
-}
-
-void Variable::operator << (const Json::Value &v_json) {
-  string type = v_json["$type"].asString();
-  if (type != "UnigeFrontEnd.Config.Variable") {
+    string line;
     stringstream ss;
-    ss << v_json << endl;
-    ss << "*** This is not a Variable!";
-    throw UFEError( ss.str(),
-                    "void Variable::operator << (const Json::Value &v_json)" ,
-                    UFEError::FATAL);
-  }
+    ss << hex;
+    ifstream conf_file(file);
 
-  SET_MEMBER_INT(this, v_json, Default, 1)
-  SET_MEMBER_INT(this, v_json, Min, 1)
-  SET_MEMBER_INT(this, v_json, Max, 1)
-  SET_MEMBER_INT(this, v_json, BitSize, 1)
-  SET_MEMBER_STRING(this, v_json, Name, 1)
-  SET_MEMBER_STRING(this, v_json, Type, 1)
-}
-
-void MemoryLayout::operator << (const Json::Value &ml_json) {
-  SET_MEMBER_INT(this, ml_json, Index, 1)
-  SET_MEMBER_INT(this, ml_json, Increment, 0)
-  SET_MEMBER_BOOL(this, ml_json, MsbFirst, 0)
-  SET_MEMBER_BOOL(this, ml_json, Absolute, 0)
+    if (conf_file) {
+      while ( getline (conf_file, line) ) {
+        ss << line;
+        ss >> *data_32;
+//         cout << hex << *data_32 << dec << endl;
+        data_32 ++;
+      }
+      conf_file.close();
+    } else
+      cout << "**  Error: cannot open file " << file << endl;
 }
 
 UFEConfigFrame::UFEConfigFrame(Json::Value c) {
-  load(c);
+  load_frame(c);
 }
 
-void UFEConfigFrame::load(Json::Value conf) {
+void UFEConfigFrame::load_frame(Json::Value conf) {
 
   try {
     SET_MEMBER_STRING(this, conf, Name, 1)

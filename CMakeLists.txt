@@ -15,6 +15,14 @@ set(EXECUTABLE_OUTPUT_PATH "${CMAKE_SOURCE_DIR}/bin")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -pthread -Wall -O3")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -O3")
 
+if (VERBOSE GREATER 1)
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DUFE_INFO")
+endif (VERBOSE GREATER 1)
+
+if (VERBOSE GREATER 2)
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DUFE_DEBUGG")
+endif (VERBOSE GREATER 2)
+
 include_directories(  ${CMAKE_SOURCE_DIR}/.
                       ${CMAKE_SOURCE_DIR}/src
                       ${JSONCPP_INCLUDE_DIR}

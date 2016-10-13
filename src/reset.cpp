@@ -1,12 +1,8 @@
 #include <iostream>
-#include <string>
-#include <fstream>
-#include <sstream>
 #include <unistd.h>
 
 #include "libufe.h"
-
-#include "UFEDef.h"
+#include "libufedef.h"
 
 using namespace std;
 
@@ -30,7 +26,7 @@ int main (int argc, char **argv) {
   libusb_set_debug(ctx, 3); //set verbosity level to 3
 
   libusb_device **febs;
-  size_t n_bmfebs = get_ufe_device_list(ctx, &febs);
+  size_t n_bmfebs = ufe_get_device_list(ctx, &febs);
 
   cout << "BM FEBs found: " << n_bmfebs << " \n";
 
@@ -44,53 +40,13 @@ int main (int argc, char **argv) {
 
     libusb_free_device_list(febs, 1); //free the lconf_filet, unref the devices in it
 
-    uint16_t *data = new uint16_t[72];
-    uint32_t *data_32 = (uint32_t*) data;
-
-    string line;
-    stringstream ss;
-    ss << hex;
-    ifstream conf_file(file_name);
-
-    if (conf_file) {
-      while ( getline (conf_file, line) ) {
-        ss << line;
-        ss >> *data_32;
-        data_32 ++;
-      }
-      conf_file.close();
-    } else
-      cout << "Cannot open file " << file_name << endl;
-
-    int board_id = 0, command_id;
-
-    command_id = SET_CONFIG_CMD_ID;
-    send_command_req( dev_handle,
-                      board_id,
-                      command_id,
-                      0,
-                      72,
-                      data);
-
-    usleep(100);
-    ep2in_wrappup_req(dev_handle, NULL);
-    usleep(100);
-
-    get_command_answer( dev_handle,
-                        board_id,
-                        command_id,
-//                         0,
-                        1,
-                        &data);
-
-    cout << "STATUS: " << hex << *data << dec << endl;
+    ufe_epxin_reset(dev_handle, 1);
+    ufe_epxin_reset(dev_handle, 2);
 
     libusb_close(dev_handle); //close the device we opened
-
   }
 
   libusb_exit(ctx); //needs to be called to end the
 
   return 0;
 }
-

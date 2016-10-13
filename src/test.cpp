@@ -28,7 +28,7 @@ int main(int argc, char** argv) {
   libusb_set_debug(ctx, 3); //set verbosity level to 3
 
   libusb_device **febs;
-  size_t n_bmfebs = get_ufe_device_list(ctx, &febs);
+  size_t n_bmfebs = ufe_get_device_list(ctx, &febs);
 
   cout << "BM FEBs found: " << n_bmfebs << " \n";
 
@@ -42,80 +42,44 @@ int main(int argc, char** argv) {
 
     libusb_free_device_list(febs, 1); //free the list, unref the devices in it
 
-    enable_led_req(dev_handle, led);
-    usleep(1);
+    status = ufe_enable_led(dev_handle, led);
+    if (status < 0)
+      return 1;
 
-    uint16_t *data = new uint16_t;
-    int board_id = 0, command_id;
+    int data;
+//     uint32_t data_32 = 0;
+    uint16_t data_16 = 0;
+    int board_id = 0;
+    uint64_t data_l = 0;
+    status = ufe_get_version(dev_handle, &data);
+    if (status < 0)
+      return 1;
 
-    command_id = FIRMWARE_VERSION_CMD_ID;
-    *data = 0;
-    send_command_req( dev_handle,
-                      board_id,
-                      command_id,
-                      NO_SUB_CMD_ID,
-                      1,
-                      data);
+    status = ufe_get_buff_size(dev_handle, &data_l);
+    if (status < 0)
+      return 1;
 
-    usleep(1);
-    ep2in_wrappup_req(dev_handle, NULL);
-    usleep(1);
+    data = 0;
+    status = ufe_firmware_version(dev_handle, board_id, &data);
+    if (status < 0)
+      return 1;
 
-    get_command_answer( dev_handle,
-                        board_id,
-                        command_id,
-                        1,
-                        &data);
-
-    cout << "FV: " << hex << *data << dec << endl;
-    usleep(1);
+    cout << "FV: " << hex << data << dec << endl;
 
     // Turn HV On
-    command_id = SET_DIRECT_PARAM_CMD_ID;
-    *data = SDP_HVON;
-    send_command_req( dev_handle,
-                      board_id,
-                      command_id,
-                      NO_SUB_CMD_ID,
-                      1,
-                      data);
+    data = SDP_HVON;
+    status = ufe_set_direct_param(dev_handle, board_id, &data_16);
+    if (status < 0)
+      return 1;
 
-    usleep(1);
-    ep2in_wrappup_req(dev_handle, NULL);
-    usleep(1);
+    status = ufe_read_status(dev_handle, board_id, &data_16);
+     if (status < 0)
+      return 1;
 
-    get_command_answer( dev_handle,
-                        board_id,
-                        command_id,
-                        1,
-                        &data);
-
-    cout << "STATUS: " << hex << *data << dec << endl;
-    usleep(1);
-
-    command_id = READ_STATUS_CMD_ID;
-    send_command_req( dev_handle,
-                      board_id,
-                      command_id,
-                      NO_SUB_CMD_ID,
-                      0,
-                      NULL);
-
-    usleep(1);
-    ep2in_wrappup_req(dev_handle, NULL);
-    usleep(1);
-
-    get_command_answer( dev_handle,
-                        board_id,
-                        command_id,
-                        1,
-                        &data);
-
-    int hv = (*data & RS_HVON)? 1:0;
+    int hv = (data & RS_HVON)? 1:0;
     cout << "HV On: " << hv << endl;
 
     libusb_close(dev_handle); //close the device we opened
-
   }
 
   libusb_exit(ctx); //needs to be called to end the

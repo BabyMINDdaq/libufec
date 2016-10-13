@@ -1,61 +1,26 @@
 #ifndef UFE_CONFIGFRAME_H
 #define UFE_CONFIGFRAME_H 1
 
-#include <string>
-#include <vector>
-#include <json/json.h>
+#include "UFEConfigLib.h"
 
-struct HardwareVId {
-  unsigned int Id_;
-  std::string ShortName_;
-  std::string FriendlyName_;
+class UFEConfigBuffer {
+public:
+  UFEConfigBuffer() = delete;
+  UFEConfigBuffer(int b, int d)
+  : board_id_(b), device_id_(d), buffer_(new uint32_t[size_]) {}
 
-  void operator << (const Json::Value &fv_json);
+  virtual ~UFEConfigBuffer() {delete[] buffer_;}
+
+  uint32_t* get_data() { return buffer_;}
+  unsigned int get_size() {return size_;}
+  void load_config_from_text(std::string file);
+
+private:
+  static const unsigned int size_ = 36;
+  int board_id_;
+  int device_id_;
+  uint32_t* buffer_;
 };
-
-struct FirmwareVId {
-  unsigned int MajorId_;
-  unsigned int MinorId_;
-  std::string ShortName_;
-  std::string FriendlyName_;
-
-  void operator << (const Json::Value &fv_json);
-};
-
-struct MemoryLayout {
-  MemoryLayout()
-  : Index_(0), Increment_(-1), MsbFirst_(false), Absolute_(false) {}
-  unsigned int Index_;
-  int Increment_;
-  bool MsbFirst_;
-  bool Absolute_;
-  std::vector<unsigned int> AbsoluteIndexes_;
-
-  void operator << (const Json::Value &v_json);
-};
-
-struct Variable {
-  std::string Name_;
-  std::string Type_;
-  int Default_;
-  int Min_;
-  int Max_;
-  int BitSize_;
-  MemoryLayout MemoryLayout_;
-
-  void operator << (const Json::Value &v_json);
-};
-
-struct Parameters {
-  std::vector<Variable> Variables_;
-};
-
-struct Board {
-  Parameters DirectParameters_;
-  Parameters DataReadoutParameters_;
-  Parameters StatusParameters_;
-};
-
 
 class UFEConfigFrame {
 public:
@@ -64,7 +29,7 @@ public:
 
   virtual ~UFEConfigFrame() {}
 
-  void load(Json::Value c);
+  void load_frame(Json::Value c);
 
 private:
 

@@ -26,10 +26,10 @@ int main (int argc, char **argv) {
   Json::Reader reader;
   bool parsingSuccessful = reader.parse(buffer_in, conf);
 
-  if ( !parsingSuccessful ){
+  if ( !parsingSuccessful ) {
     // report to the user the failure and their locations in the document.
-    std::cout  << "Failed to parse configuration\n"
-               << reader.getFormattedErrorMessages();
+    std::cout << "Failed to parse configuration\n"
+              << reader.getFormattedErrorMessages();
     return 1;
   }
 

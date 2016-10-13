@@ -30,7 +30,7 @@ int main(int argc, char** argv) {
   libusb_set_debug(ctx, 3); //set verbosity level to 3
 
   libusb_device **febs;
-  size_t n_bmfebs = get_ufe_device_list(ctx, &febs);
+  size_t n_bmfebs = ufe_get_device_list(ctx, &febs);
 
   printf("BM FEBs found: %zu \n", n_bmfebs);
 
@@ -60,12 +60,13 @@ int main(int argc, char** argv) {
                       data);
 
     usleep(1);
-    ep2in_wrappup_req(dev_handle, NULL);
+    ep2in_wrappup_req(dev_handle);
     usleep(1);
 
     get_command_answer( dev_handle,
                         board_id,
                         command_id,
+                        NO_SUB_CMD_ID,
                         1,
                         &data);
 
@@ -83,12 +84,13 @@ int main(int argc, char** argv) {
                       data);
 
     usleep(1);
-    ep2in_wrappup_req(dev_handle, NULL);
+    ep2in_wrappup_req(dev_handle);
     usleep(1);
 
     get_command_answer( dev_handle,
                         board_id,
                         command_id,
+                        NO_SUB_CMD_ID,
                         1,
                         &data);
 
@@ -104,12 +106,13 @@ int main(int argc, char** argv) {
                       NULL);
 
     usleep(1);
-    ep2in_wrappup_req(dev_handle, NULL);
+    ep2in_wrappup_req(dev_handle);
     usleep(1);
 
     get_command_answer( dev_handle,
                         board_id,
                         command_id,
+                        NO_SUB_CMD_ID,
                         1,
                         &data);
 

@@ -5,14 +5,11 @@
 #define CLASS_REQUEST           0x20
 
 enum ufe_request_types {
-  UFE_GET_VERSION_REQ = 0x20,
-  UFE_LED_OFF_REQ = 0x22,
+  UFE_GET_VERSION_REQ   = 0x20,
+  UFE_GET_BUF_SIZE      = 0x21,
+  UFE_LED_OFF_REQ       = 0x22,
   UFE_EP2IN_WRAPPUP_REQ = 0x23,
-  UFE_EPxIN_RESET_REQ = 0x24
-};
-
-enum ufe_error {
-  UFE_ERROR_INVALID_CMD_ANSWER = -13,
+  UFE_EPxIN_RESET_REQ   = 0x24
 };
 
 enum ufe_masks {
@@ -37,6 +34,20 @@ enum ufe_cmd_ids {
   CMD_HEADER_ID  = 0x8,
   CMD_ARG_ID     = 0x9,
   CMD_TRAILER_ID = 0xA
+};
+
+enum ufe_ep_addr {
+  UFE_USB_EP1_OUT = 0x01,
+  UFE_USB_EP1_IN  = 0x81,
+  UFE_USB_EP2_OUT = 0x02,
+  UFE_USB_EP2_IN  = 0x82
+};
+
+enum ufe_setcongig_validate_codes {
+  UFE_SC_VALIDATE_D0 = 0xFA5,
+  UFE_SC_VALIDATE_D1 = 0xED8,
+  UFE_SC_VALIDATE_D2 = 0x9CD,
+  UFE_SC_VALIDATE_D3 = 0x76A
 };
 
 #endif
