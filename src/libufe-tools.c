@@ -99,9 +99,8 @@ int on_device_do(int id, userfunc user_func) {
     if(dev_handle == NULL) {
       fprintf(stderr, "!!! Error: cannot open device.\n");
       return 1;
-    }
+    } else {
 #ifdef UFE_DEBUG
-    else {
       printf("### Debug: device opened.\n");
 #endif
 
