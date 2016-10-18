@@ -1,0 +1,2 @@
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="206b", GROUP="@THIS_USER@"
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="206b", OWNER="@THIS_USER@"

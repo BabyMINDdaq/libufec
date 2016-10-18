@@ -1,2 +1,0 @@
-SUBSYSTEMS=="usb", ATTRS{idVendor}=="206b", GROUP="dpnc"
-SUBSYSTEMS=="usb", ATTRS{idVendor}=="206b", OWNER="dpnc"

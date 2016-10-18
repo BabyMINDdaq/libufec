@@ -6,7 +6,7 @@
 #include <libusb-1.0/libusb.h>
 
 #include "libufe.h"
-#include "libufedef.h"
+#include "libufe-def.h"
 
 #define UFE_GET_CONTEXT(ctx) \
   do { \
@@ -60,6 +60,7 @@ size_t ufe_get_device_list(libusb_context *ctx, libusb_device ***feb_devs) {
 
   if(n_devs < 0) {
     fprintf(stderr, "!!! Device Error\n"); //there was an error
+    return 0;
   }
 
   int i_dev;
@@ -104,16 +105,16 @@ int ufe_get_version(libusb_device_handle *ufe, int *data) {
                                         (uint8_t*) data,
                                         lenght,
                                         UFE_TIMEOUT);
-  if(status != lenght)
+  if(status != lenght) {
     fprintf(stderr, "!!! Error: get_version failed (%i, %2x)\n", status, *data);
-  else
-#ifdef UFE_DEBUGG
+    free(data);
+    return UFE_INVALID_CMD_ANSWER_ERROR;
+  } else
+#ifdef UFE_DEBUG
     printf("### Debug: get_version (%i, 0x%4x)\n", status, *data);
 #endif
 
   usleep(1);
-  return status;
-
   return 0;
 }
 
@@ -130,96 +131,97 @@ int ufe_get_buff_size(libusb_device_handle *ufe, uint64_t *data) {
                                         (uint8_t*) data,
                                         lenght,
                                         UFE_TIMEOUT);
-  if(status != lenght)
+  if(status != lenght) {
     fprintf(stderr, "!!! Error: get_buff_size failed (%i, %" PRId64 ")\n", status, *data);
-  else
-#ifdef UFE_DEBUGG
+    free(data);
+    return UFE_INVALID_CMD_ANSWER_ERROR;
+  } else
+#ifdef UFE_DEBUG
     printf("### Debug: get_buff_size (%i, 0x%" PRIx64 "): \n", status, *data);
 #endif
 
   usleep(1);
-  return status;
+  return 0;
 }
 
 int ufe_enable_led(libusb_device_handle *ufe, bool enable) {
 
-  uint16_t value = (uint16_t)(!enable), lenght = 1; 
-  uint8_t *data = (uint8_t*) malloc(1);
-  *data = 7;
+  uint16_t value = (uint16_t)(!enable), lenght = 1;
+  uint8_t data = 7;
 
   int status = libusb_control_transfer( ufe,
                                         CLASS_REQUEST | LIBUSB_ENDPOINT_IN,
                                         UFE_LED_OFF_REQ,
                                         value,
                                         0,
-                                        data,
+                                        &data,
                                         lenght,
                                         UFE_TIMEOUT);
-  if(status != lenght || *data != value)
-    fprintf(stderr, "!!! Error: enable_led failed (%i, %i)\n", status, *data);
-  else
-#ifdef UFE_DEBUGG
-    printf("### Debug: enable_led (%i, %i)\n", status, *data);
+  if(status != lenght || data != value) {
+    fprintf(stderr, "!!! Error: enable_led failed (%i, %i)\n", status, data);
+    return UFE_INVALID_CMD_ANSWER_ERROR;
+  } else
+#ifdef UFE_DEBUG
+    printf("### Debug: enable_led (%i, %i)\n", status, data);
 #endif
 
-  free(data);
   usleep(1);
-  return status;
+  return 0;
 }
 
 int ufe_ep2in_wrappup(libusb_device_handle *ufe) {
 
   uint16_t value = 2, lenght = 1;
-  uint8_t *data = (uint8_t*) malloc(1);
-  *data = 7;
+  uint8_t data = 7;
 
   int status = libusb_control_transfer( ufe,
                                         CLASS_REQUEST | LIBUSB_ENDPOINT_IN,
                                         UFE_EP2IN_WRAPPUP_REQ,
                                         value,
                                         0,
-                                        data,
+                                        &data,
                                         lenght,
                                         UFE_TIMEOUT);
-  if(status != lenght || *data != value)
-    fprintf(stderr, "!!! Error: ep2in_wrappup failed (%i, %i)\n", status, *data);
-  else
-#ifdef UFE_DEBUGG
-    printf("### Debug: ep2in_wrappup (%i, %i)\n", status, *data);
+  if(status != lenght || data != value) {
+    fprintf(stderr, "!!! Error: ep2in_wrappup failed (%i, %i)\n", status, data);
+    return UFE_INVALID_CMD_ANSWER_ERROR;
+  } else
+#ifdef UFE_DEBUG
+    printf("### Debug: ep2in_wrappup (%i, %i)\n", status, data);
 #endif
 
-  free(data);
   usleep(1);
-  return status;
+  return 0;
 }
 
 int ufe_epxin_reset(libusb_device_handle *ufe, int ep_id) {
 
   uint16_t value = ep_id, lenght = 1;
-  uint8_t *data = (uint8_t*) malloc(1);
-  *data = 7;
+  uint8_t data = 7;
 
   int status = libusb_control_transfer( ufe,
                                         CLASS_REQUEST | LIBUSB_ENDPOINT_IN,
                                         UFE_EPxIN_RESET_REQ,
                                         value,
                                         0,
-                                        data,
+                                        &data,
                                         lenght,
                                         UFE_TIMEOUT);
-  if(status != lenght || *data != value)
-    fprintf(stderr, "!!! Error: epxin_reset failed (%i, %i)\n", status, *data);
-  else
-#ifdef UFE_DEBUGG
-    printf("### Debug: epxin_reset (%i, %i)\n", status, *data);
+  if(status != lenght || data != value) {
+    fprintf(stderr, "!!! Error: epxin_reset failed on EP %i (%i, %i)\n", ep_id, status, data);
+    return UFE_INVALID_CMD_ANSWER_ERROR;
+  } else
+#ifdef UFE_DEBUG
+    printf("### Debug: epxin_reset on EP %i (%i, %i)\n", ep_id, status, data);
 #endif
 
-  free(data);
   usleep(1);
-  return status;
+  return 0;
 }
 
 int ufe_user_set_sync( libusb_device_handle *ufe, int ep, int size, uint8_t *data) {
+
+  // Prepare the End Point identifier.
   uint8_t ep_id;
   if (ep == 1) 
     ep_id = UFE_USB_EP1_OUT | LIBUSB_ENDPOINT_OUT;
@@ -230,6 +232,7 @@ int ufe_user_set_sync( libusb_device_handle *ufe, int ep, int size, uint8_t *dat
     return UFE_INVALID_ARG_ERROR;
   }
 
+  // Make bulk transfer.
   int actual;
   int status = libusb_bulk_transfer( ufe,
                                      ep_id,
@@ -241,8 +244,9 @@ int ufe_user_set_sync( libusb_device_handle *ufe, int ep, int size, uint8_t *dat
   if(status == 0 && actual == size) {
     //we wrote successfully
 
-#ifdef UFE_DEBUGG
+#ifdef UFE_DEBUG
 
+    // Print in a proper format. Only in debugging mode.
     switch (size) {
       case 1:
         printf("### Debug: command sent (%i, %i): 0x%x\n", status, actual, *((uint8_t *) data));
@@ -257,7 +261,7 @@ int ufe_user_set_sync( libusb_device_handle *ufe, int ep, int size, uint8_t *dat
 
 #endif
 
-    return status;
+    return 0;
   }
 
   fprintf(stderr, "!!! Error: answer not resieved (%i, %i)\n", status, actual);
@@ -265,10 +269,12 @@ int ufe_user_set_sync( libusb_device_handle *ufe, int ep, int size, uint8_t *dat
   if (status < 0)
     return status;
 
-  return UFE_ERROR_IO;
+  return UFE_IO_ERROR;
 }
 
 int ufe_user_get_sync( libusb_device_handle *ufe, int ep, int size, uint8_t *data) {
+
+  // Prepare the End Point identifier.
   uint8_t ep_id;
   if (ep == 1) 
     ep_id = UFE_USB_EP1_IN | LIBUSB_ENDPOINT_IN;
@@ -279,6 +285,7 @@ int ufe_user_get_sync( libusb_device_handle *ufe, int ep, int size, uint8_t *dat
     return UFE_INVALID_ARG_ERROR;
   }
 
+  // Make bulk transfer.
   int actual;
   int status = libusb_bulk_transfer( ufe,
                                      ep_id,
@@ -290,8 +297,9 @@ int ufe_user_get_sync( libusb_device_handle *ufe, int ep, int size, uint8_t *dat
   if(status == 0 && actual == size) {
     //we read successfully
 
-#ifdef UFE_DEBUGG
+#ifdef UFE_DEBUG
 
+    // Print in a proper format. Only in debugging mode.
     switch (size) {
       case 1:
         printf("### Debug: answer resieved (%i, %i): 0x%x\n", status, actual, *((uint8_t *) data));
@@ -306,7 +314,7 @@ int ufe_user_get_sync( libusb_device_handle *ufe, int ep, int size, uint8_t *dat
 
 #endif
 
-    return status;
+    return 0;
   }
 
   fprintf(stderr, "!!! Error: answer not resieved (%i, %i)\n", status, actual);
@@ -314,7 +322,7 @@ int ufe_user_get_sync( libusb_device_handle *ufe, int ep, int size, uint8_t *dat
   if (status < 0)
     return status;
 
-  return UFE_ERROR_IO;
+  return UFE_IO_ERROR;
 }
 
 int ufe_send_command_req( libusb_device_handle *ufe,
@@ -437,6 +445,7 @@ int ufe_get_command_answer( libusb_device_handle *ufe,
   }
 
   // Verify the consistency of the answer.
+  // Check the header.
   if ( (*answer & UFE_DW_ID_MASK)    >>  UFE_DW_ID_SHIFT   != CMD_HEADER_ID   ||
        (*answer & UFE_BOARD_ID_MASK) >>  UFE_BOARD_ID_SHIFT != board_id ||
        (*answer & UFE_CMD_ID_MASK)   >>  UFE_CMD_ID_SHIFT   != command_id ) {
@@ -445,10 +454,12 @@ int ufe_get_command_answer( libusb_device_handle *ufe,
     return UFE_INVALID_CMD_ANSWER_ERROR;
   }
 
+  // If the argument is only one, retrieve the value.
   if  (argc == 1) {
     **argv = *answer & UFE_ARGUMENT_MASK;
   }
 
+  // Check the header subcommand Id.
   if (sub_cmd_id >= 0) {
     if ( (*answer & UFE_SUBCMD_ID_MASK) >> UFE_SUBCMD_ID_SHIFT != sub_cmd_id ) {
       fprintf(stderr, "!!! Error: inconsistent answer header (0x%4x)\n", *answer);
@@ -457,6 +468,7 @@ int ufe_get_command_answer( libusb_device_handle *ufe,
     }
   }
 
+  // Check the number of arguments.
   if (argc > 1) {
     if ( (*answer & UFE_ARG_FR_NUM_MASK) != argc ) {
       fprintf(stderr, "!!! Error: inconsistent answer header (0x%4x)\n", *answer);
@@ -464,8 +476,10 @@ int ufe_get_command_answer( libusb_device_handle *ufe,
       return UFE_INVALID_CMD_ANSWER_ERROR;
     }
 
+    // Loop over the arguments.
     int i;
     for (i=0; i<argc; ++i) {
+      // Check the consistency of the argument.
       if ( (answer[i+1] & UFE_DW_ID_MASK)       >> UFE_DW_ID_SHIFT       != CMD_ARG_ID ||
            (answer[i+1] & UEF_FRAME_INDEX_MASK) >> UEF_FRAME_INDEX_SHIFT != i ) {
         fprintf(stderr, "!!!  Error: inconsistent answer argument %i (0x%4x)\n",i , answer[i+1]);
@@ -473,13 +487,15 @@ int ufe_get_command_answer( libusb_device_handle *ufe,
         return UFE_INVALID_CMD_ANSWER_ERROR;
       }
 
+      // Retrieve the value.
       (*argv)[i] = (~UFE_DW_ID_MASK) & answer[i+1];
     }
 
+    // Check the trailer
     if ( (answer[argc+1] & UFE_DW_ID_MASK)    >>  UFE_DW_ID_SHIFT    != CMD_TRAILER_ID  ||
          (answer[argc+1] & UFE_BOARD_ID_MASK) >>  UFE_BOARD_ID_SHIFT != board_id ||
          (answer[argc+1] & UFE_CMD_ID_MASK)   >>  UFE_CMD_ID_SHIFT   != command_id ) {
-      fprintf(stderr, "!!! Error: inconsistent answer traile (0x%4x)\n", answer[argc+1]);
+      fprintf(stderr, "!!! Error: inconsistent answer trailer (0x%4x)\n", answer[argc+1]);
       free(answer);
       return UFE_INVALID_CMD_ANSWER_ERROR;
     }
@@ -523,11 +539,11 @@ int ufe_firmware_version(libusb_device_handle *ufe, int board_id, int *data) {
                                  2);
   if (status != 0)
     return status;
- 
+
   usleep(1);
   status = ufe_ep2in_wrappup(ufe);
 
-  if (status != 1)
+  if (status != 0)
     return status;
 
   usleep(1);
@@ -559,11 +575,11 @@ int ufe_set_direct_param(libusb_device_handle *ufe, int board_id, uint16_t *data
                                  2);
   if (status != 0)
     return status;
- 
+
   usleep(1);
   status = ufe_ep2in_wrappup(ufe);
 
-  if (status != 1)
+  if (status != 0)
     return status;
 
   usleep(1);
@@ -595,11 +611,11 @@ int ufe_read_status(libusb_device_handle *ufe, int board_id, uint16_t *data) {
                                  2);
   if (status != 0)
     return status;
- 
+
   usleep(1);
   status = ufe_ep2in_wrappup(ufe);
 
-  if (status != 1)
+  if (status != 0)
     return status;
 
   usleep(1);
@@ -636,7 +652,7 @@ int ufe_set_config(libusb_device_handle *ufe, int board_id, int device, uint32_t
   usleep(argc*100);
   status = ufe_ep2in_wrappup(ufe);
 
-  if (status != 1)
+  if (status != 0)
     return status;
 
   usleep(1);
@@ -650,7 +666,7 @@ int ufe_set_config(libusb_device_handle *ufe, int board_id, int device, uint32_t
   usleep(1);
 
   // Now validate the configuration.
-  uint16_t code;
+  uint16_t code = 0;
   switch (device) {
     case 0:
       code = UFE_SC_VALIDATE_D0; break;
@@ -678,7 +694,7 @@ int ufe_set_config(libusb_device_handle *ufe, int board_id, int device, uint32_t
   usleep(argc*100);
   status = ufe_ep2in_wrappup(ufe);
 
-  if (status != 1)
+  if (status != 0)
     return status;
 
   usleep(1);
@@ -717,7 +733,7 @@ int ufe_get_config(libusb_device_handle *ufe, int board_id, int device, uint32_t
   usleep(argc*500);
   status = ufe_ep2in_wrappup(ufe);
 
-  if (status != 1)
+  if (status != 0)
     return status;
 
   usleep(argc*100);
@@ -751,11 +767,11 @@ int ufe_apply_config(libusb_device_handle *ufe, int board_id, int device) {
                                  2);
   if (status != 0)
     return status;
- 
+
   usleep(1);
   status = ufe_ep2in_wrappup(ufe);
 
-  if (status != 1)
+  if (status != 0)
     return status;
 
   usleep(1);
@@ -768,7 +784,7 @@ int ufe_apply_config(libusb_device_handle *ufe, int board_id, int device) {
                                    2);
   usleep(1);
   free(data_16);
-  return status;  
+  return status;
 }
 
 int ufe_data_readout(libusb_device_handle *ufe, int board_id, int start) {
@@ -794,7 +810,7 @@ int ufe_data_readout(libusb_device_handle *ufe, int board_id, int start) {
   usleep(1);
   status = ufe_ep2in_wrappup(ufe);
 
-  if (status != 1)
+  if (status != 0)
     return status;
 
 
@@ -808,5 +824,5 @@ int ufe_data_readout(libusb_device_handle *ufe, int board_id, int start) {
                                    2);
   usleep(1);
   free(data_16);
-  return status;  
+  return status;
 }

@@ -1,9 +1,13 @@
+#ifndef _GET_BACKTRACE_H
+#define _GET_BACKTRACE_H 1
+
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
-#endif
+#endif // _GNU_SOURCE
+
 #ifndef __USE_GNU
 #define __USE_GNU
-#endif
+#endif // __USE_GNU
 
 #include <execinfo.h>
 #include <cxxabi.h>
@@ -110,3 +114,6 @@ void SetErrorHdlr() {
   exit(EXIT_FAILURE);
  }
 }
+
+#endif //_GET_BACKTRACE_H
+

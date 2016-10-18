@@ -1,22 +1,19 @@
-# add_executable (test testlibusb.c)
-# target_link_libraries(test usb)
+MESSAGE(" libufec ...")
 
-add_library(ufe SHARED libufe.c)
-target_link_libraries(ufe usb-1.0)
+if (STATIC)
 
-add_library(bmdaq SHARED UFEConfigFrame.cpp
-                         UFEConfigLib.cpp
-                         UFEError.cpp)
-target_link_libraries(bmdaq ufe jsoncpp)
+  MESSAGE(STATUS "building static library\n")
+  add_library(ufec libufe.c libufe-tools.c)
+  target_link_libraries(ufec ${LIBUSB_LIBRARY})
 
-add_executable (test_cpp test.cpp)
-target_link_libraries(test_cpp ufe)
+else (STATIC)
 
-# add_executable (test_c test.c)
-# target_link_libraries(test_c ufe)
+  MESSAGE(STATUS "building shered library\n")
+  add_library(ufec SHARED libufe.c libufe-tools.c)
+  target_link_libraries(ufec ${LIBUSB_LIBRARY})
 
-add_executable (reset reset.cpp)
-target_link_libraries(reset ufe)
+endif ()
 
-add_executable (config config.cpp)
-target_link_libraries(config bmdaq)
+
+# add_executable (config config.cpp)
+# target_link_libraries(config bmdaq)

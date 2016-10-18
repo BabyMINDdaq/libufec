@@ -87,9 +87,10 @@ enum ufe_cmd_id {
 
 enum ufe_error {
   UFE_INTERNAL_ERROR           = -13,
-  UFE_ERROR_IO                 = -14,
+  UFE_IO_ERROR                 = -14,
   UFE_INVALID_CMD_ANSWER_ERROR = -15,
-  UFE_INVALID_ARG_ERROR        = -16
+  UFE_INVALID_ARG_ERROR        = -16,
+  UFE_NOT_FOUND_ERROR          = -17
 };
 
 #define NO_SUB_CMD_ID -1
