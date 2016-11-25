@@ -1,78 +1,327 @@
+/** This file is part of BabyMINDdaq software package. This software
+ * package is designed for internal use for the Baby MIND detector
+ * collaboration and is tailored for this use primarily.
+ *
+ * BabyMINDdaq is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * BabyMINDdaq is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with BabyMINDdaq.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *  \author   Yordan Karadzhov <Yordan.Karadzhov \at cern.ch>
+ *            University of Geneva
+ *
+ *  \created  Oct 2016
+ */
+
 #ifndef LIBUFE_H
 #define LIBUFE_H 1
 
 #include <stdbool.h>
-#include <stdint.h>
-
 #include <libusb-1.0/libusb.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+/** Baby Unige Front-end Board (UFE) USB vendor Id code. */
+#define UFE_VENDOR_ID        0x206b
+
+/** Baby MIND Front-end board USB product Id code. */
+#define BMFEB_PRODUCT_ID     0xc00
+
+
+/** \brief Structure representing a libufec session. */
 struct ufe_context {
-  int debug;
-  unsigned int timeout;
+  /** Verbosity level of the output
+   * 0 - Errors only
+   * 1 - Errors/Warnings only
+   * 2 - Errors/Warnings/Info only
+   * 3 - Errors/Warnings/Info/Debug
+   * verbose_ < 0 - mute
+   */
+  int verbose_;
 
-  libusb_context* usb_ctx;
+  /** Buffer readout timeout in (in millseconds) */
+  unsigned int readout_timeout_;
+
+  /** LIBUSB context */
+  libusb_context* usb_ctx_;
 };
+typedef struct ufe_context ufe_context;
 
-int ufe_init(struct ufe_context **ctx);
 
-void ufe_set_debug(struct ufe_context *ctx, int libusb_level, int ufe_level);
+/** \brief Initialize a default context.
+ *  \param ctx: Optional output location for context pointer. Only valid on return code 0.
+ *  \returns 0 on success, or a LIBUSB_ERROR / UFE_ERROR code on failure.
+ */
+int ufe_default_context(ufe_context **context);
 
-void ufe_set_timeout(struct ufe_context *ctx, int t);
 
+/** \brief Initialize libufec. This function must be called before calling any other libufec function.
+ *  \param ctx: Optional input/output location for context pointer. Only valid on return code 0.
+ *  \returns 0 on success, or a LIBUSB_ERROR / UFE_ERROR code on failure.
+ */
+int ufe_init(ufe_context **ctx);
+
+
+/** \brief Set output message verbosity.
+ *  \param ctx: The context to operate on.
+ *  \param libusb_level: Verbosity level for libusb.
+ *  \param ufe_level: Verbosity level for libufec.
+ */
+void ufe_set_verbose(ufe_context *ctx, int libusb_level, int ufe_level);
+
+
+/** \brief Set buffer readout timeout.
+ *  \param ctx: The context of the session.
+ *  \param t: Buffer readout timeout in (in millseconds)
+ */
+void ufe_set_readout_timeout(ufe_context *ctx, int t);
+
+
+/** \brief Gets a list of UFE devices currently attached to the system.
+ *  \param ctx: The context of the session.
+ *  \param feb_devs: output location for a list of UFE devices.
+ *  \returns The number of devices in the outputted list, or a libusb_error according to error
+ *  encountered by the backend.
+ */
 size_t ufe_get_device_list(libusb_context *ctx, libusb_device ***feb_devs);
 
-void ufe_exit(struct ufe_context *ctx);
 
+/** \brief Gets a list of the Baby MIND UFE devices currently attached to the system.
+ *  \param ctx: The context of the session.
+ *  \param feb_devs: output location for a list of UFE devices.
+ *  \returns The number of devices in the outputted list, or a libusb_error according to error
+ *  encountered by the backend.
+ */
+size_t ufe_get_bm_device_list(libusb_context *ctx, libusb_device ***feb_devs);
+
+
+int ufe_open(libusb_device *dev, libusb_device_handle **handle);
+
+
+void ufe_close(libusb_device_handle *handle);
+
+
+ufe_context* ufe_get_context();
+
+/** \brief Deinitialize libufec. Should be called after closing all open devices and before your
+ *  application terminates.
+ *  \param ctx: The context to deinitializ.
+ */
+void ufe_exit(ufe_context *ctx);
+
+
+/** \brief Checks if a board is reachable.
+ *  \param ufe: A device handle.
+ *  \param board_id: Board identifier (unique number), addressed by this command.
+ *  \returns True if the board is reachable, else false.
+ */
+bool ufe_ping(libusb_device_handle *dev_handle, uint8_t board_id);
+
+
+/** \brief Gets the version Id codded in 2 bytes, one for the minor version and one for the
+ *  major version.
+ *  \param ufe: A device handle.
+ *  \param data: Output location for the version Id data.
+ *  \returns 0 on success, or a LIBUSB_ERROR / UFE_ERROR code on failure.
+ */
 int ufe_get_version(libusb_device_handle *ufe, int *data);
 
+
+/** \brief Gets the buffer size codded in 8 bytes for the DMA buffer size multiplier and the DMA
+ *   count for each of the 4 threads.
+ *  \param ufe: A device handle.
+ *  \param data: Output location for the buffer size data.
+ *  \returns 0 on success, or a LIBUSB_ERROR / UFE_ERROR code on failure.
+ */
 int ufe_get_buff_size(libusb_device_handle *ufe, uint64_t *data);
 
+
+/** \brief Turns ON/OFF the green LED on the board.
+ *  \param ufe: A device handle.
+ *  \param enable: True/False to turn ON/OFF.
+ *  \returns 0 on success, or a LIBUSB_ERROR / UFE_ERROR code on failure.
+ */
 int ufe_enable_led(libusb_device_handle *ufe, bool enable);
 
+
+/** \brief The call of this function forces the DMA engine to allow USB EP2 to get the data from
+ *  its buffer. This request is mandatory if the host want to get back some UART data where the number
+ *  of bytes is lower than the DMA buffer e.g. for a short answer of the protocol.
+ *  \param ufe: A device handle.
+ *  \returns 0 on success, or a LIBUSB_ERROR / UFE_ERROR code on failure.
+ */
 int ufe_ep2in_wrappup(libusb_device_handle *ufe);
 
+
+/** \brief The call of this function forces the DMA and USB engines to reset the corresponding communication
+ *  link (EP1IN or EP2IN). This might be helpful in case of USB stuck.
+ *  \param ufe: A device handle.
+ *  \param ep_id: 1 / 2 to reset EP1IN / EP2IN.
+ *  \returns 0 on success, or a LIBUSB_ERROR / UFE_ERROR code on failure.
+ */
 int ufe_epxin_reset(libusb_device_handle *ufe, int ep_id);
 
+
+/** \brief To be defined.
+ *  \param ufe: A device handle.
+ *  \param board_id: Board identifier (unique number), addressed by this command.
+ *  \returns 0 on success, or a LIBUSB_ERROR / UFE_ERROR code on failure.
+ */
 int ufe_idle(libusb_device_handle *ufe, int board_id);
 
-int ufe_data_readout(libusb_device_handle *ufe, int board_id, int start);
 
+/** \brief Starts the readout until a new command is sent.
+ *  \param ufe: A device handle.
+ *  \param board_id: Board identifier (unique number), addressed by this command.
+ *  \param data: Intput location for the command's argumant data.
+ *  \returns 0 on success, or a LIBUSB_ERROR / UFE_ERROR code on failure.
+ */
+int ufe_data_readout(libusb_device_handle *ufe, int board_id, uint16_t *data);
+
+
+/** \brief Gets the firmware version.
+ *  \param ufe: A device handle.
+ *  \param board_id: Board identifier (unique number), addressed by this command.
+ *  \param data: Input/Output location for the command's argumant data.
+ *  \returns 0 on success, or a LIBUSB_ERROR / UFE_ERROR code on failure.
+ */
 int ufe_firmware_version(libusb_device_handle *ufe, int board_id, int *data);
 
+
+/** \brief Set values of the direct parameters.
+ *  \param ufe: A device handle.
+ *  \param board_id: Board identifier (unique number), addressed by this command.
+ *  \param data: Intput location for the command's argumant data. In case of an error
+ *  this is the output location of the error code.
+ *  \returns 0 on success, or a LIBUSB_ERROR / UFE_ERROR code on failure.
+ */
 int ufe_set_direct_param(libusb_device_handle *ufe, int board_id, uint16_t *data);
 
+
+/** \brief Read the status parameters from the board.
+ *  \param ufe: A device handle.
+ *  \param board_id: Board identifier (unique number), addressed by this command.
+ *  \param data: Output location for the command's argumant data.
+ *  \returns 0 on success, or a LIBUSB_ERROR / UFE_ERROR code on failure.
+ */
 int ufe_read_status(libusb_device_handle *ufe, int board_id, uint16_t *data);
 
+
+/** \brief Load the configuration.
+ *  \param ufe: A device handle.
+ *  \param board_id: Board identifier (unique number), addressed by this command.
+ *  \param device: Device Id (0/1/2 for the ASICs and 3 for the FPGA)
+ *  \param data: Intput location for the command's argumant data. In case of an error
+ *  this is the output location of the error code.
+ *  \returns 0 on success, or a LIBUSB_ERROR / UFE_ERROR code on failure.
+ */
 int ufe_set_config(libusb_device_handle *ufe, int board_id, int device, uint32_t *data);
 
+
+/** \brief Get the loaded configuration.
+ *  \param ufe: A device handle.
+ *  \param board_id: Board identifier (unique number), addressed by this command.
+ *  \param device: Device Id (0/1/2 for the ASICs and 3 for the FPGA)
+ *  \param data: Output location for the command's argumant data.
+ *  \returns 0 on success, or a LIBUSB_ERROR / UFE_ERROR code on failure.
+ */
 int ufe_get_config(libusb_device_handle *ufe, int board_id, int device, uint32_t *data);
 
-int ufe_apply_config(libusb_device_handle *ufe, int board_id, int device);
 
+/** \brief Apply the loaded configuration.
+ *  \param ufe: A device handle.
+ *  \param board_id: Board identifier (unique number), addressed by this command.
+ *  \param data: Intput location for the command's argumant data. In case of an error
+ *  this is the output location of the error code.
+ *  \returns 0 on success, or a LIBUSB_ERROR / UFE_ERROR code on failure.
+ */
+int ufe_apply_config(libusb_device_handle *ufe, int board_id, uint16_t *data);
+
+
+/** \brief Get data from the readout buffer.
+ *  \param ufe: A device handle.
+ *  \param board_id: Board identifier (unique number), addressed by this command.
+ *  \param data: Output location for data to be transferred.
+ *  \param size: Size of the data to be transferred.
+ *  \param actual: Actual size of the transferred data.
+ *  \returns 0 on success, or a LIBUSB_ERROR / UFE_ERROR code on failure.
+ */
+int ufe_read_buffer(libusb_device_handle *ufe, uint8_t* data, size_t size, int *actual);
+
+
+/** \brief Send a command.
+ *  \param ufe: A device handle.
+ *  \param board_id: Board identifier (unique number), addressed by this command.
+ *  \param command_id: Command identifier (unique number).
+ *  \param sub_cmd_id: Subcommand identifier (unique number).
+ *  \param argc: Number of argumants.
+ *  \param argv: Intput location for the command's argumants data.
+ *  \returns 0 on success, or a LIBUSB_ERROR / UFE_ERROR code on failure.
+ */
 int send_command_req( libusb_device_handle *ufe,
                       int board_id,
                       int command_id,
                       int sub_cmd_id,
                       int argc,
-                      uint16_t *argv,
-                      int ep);
+                      uint16_t *argv);
 
+
+/** \brief Get the answer of a command.
+ *  \param ufe: A device handle.
+ *  \param board_id: Board identifier (unique number), addressed by this command.
+ *  \param command_id: Command identifier (unique number).
+ *  \param sub_cmd_id: Subcommand identifier (unique number).
+ *  \param argc: Number of argumants.
+ *  \param argv: Intput location for the command's argumants data.
+ *  \returns 0 on success, or a LIBUSB_ERROR / UFE_ERROR code on failure.
+ */
 int get_command_answer( libusb_device_handle *ufe,
                         int board_id,
                         int command_id,
                         int sub_cmd_id,
                         int argc,
-                        uint16_t **argv,
-                        int ep);
+                        uint16_t **argv);
 
+/** The value to be given to the \param sub_cmd_id of to functions send_command_req and get_command_answer
+ if the corresponding command has not Subcommand identifier */
+#define NO_SUB_CMD_ID -1
+
+
+/** \brief Send data to the device.
+ *  \param ufe: A device handle.
+ *  \param ep: 1 / 2 for EP1OUT / EP2OUT
+ *  \param size: Size of the data to be transferred.
+ *  \param data: Intput location for data to be transferred.
+ *  \returns 0 on success, or a LIBUSB_ERROR / UFE_ERROR code on failure.
+ */
 int ufe_user_set_sync( libusb_device_handle *ufe, int ep, int size, uint8_t *data);
 
+
+/** \brief Get data from the device.
+ *  \param ufe: A device handle.
+ *  \param ep: 1 / 2 for EP1IN / EP2IN.
+ *  \param size: Size of the data to be transferred.
+ *  \param data: Output location for data to be transferred.
+ *  \returns 0 on success, or a LIBUSB_ERROR / UFE_ERROR code on failure.
+ */
 int ufe_user_get_sync( libusb_device_handle *ufe, int ep, int size, uint8_t *data);
 
+
+/** Default timeout (in millseconds) during the command exchange communication. */
+#define UFE_CMD_TIMEOUT 1000
+
+
+/** List of the Command identifiers for the command requests and command answers */
 enum ufe_cmd_id {
   DATA_READOUT_CMD_ID     = 0x0,
   FIRMWARE_VERSION_CMD_ID = 0x01,
@@ -85,6 +334,7 @@ enum ufe_cmd_id {
   IDLE_CMD_ID             = 0x1F
 };
 
+/** List of the UFE_ERROR code returned on failure. */
 enum ufe_error {
   UFE_INTERNAL_ERROR           = -13,
   UFE_IO_ERROR                 = -14,
@@ -93,16 +343,20 @@ enum ufe_error {
   UFE_NOT_FOUND_ERROR          = -17
 };
 
-#define NO_SUB_CMD_ID -1
 
-#define UFE_TIMEOUT 1000
-
-enum ufe_data_readout_args {
+/** DATA_READOUT: List of the command argumants */
+enum ufe_data_readout_cmd_args {
   DR_START = 0x0,
-  DR_STOP  = 0x1
-
+  DR_STOP  = 0x1,
+  DR_GTEN  = 0x40,
+  DR_AVE   = 0x80,
+  DR_RDEN  = 0x400,
+  DR_IGEN  = 0x800
 };
-enum ufe_set_dir_par_args {
+
+
+/** SET_DIRECT_PARAM: List of the command argumants. */
+enum ufe_set_dir_par_cmd_args {
   SDP_RSSR = 0x1,
   SDP_RSTA = 0x2,
   SDP_RTTA = 0x4,
@@ -118,7 +372,9 @@ enum ufe_set_dir_par_args {
   SDP_FCLR = 0x8000
 };
 
-enum ufe_read_status_args {
+
+/** READ_STATUS: List of the answer argumants. */
+enum ufe_read_status_answ_args {
   RS_GTEN       = 0x1,
   RS_AVE        = 0x2,
   RS_L0F_ERR    = 0x4,
@@ -134,6 +390,8 @@ enum ufe_read_status_args {
   RS_IGEN       = 0x1000
 };
 
+
+/** APPLY_CONFIG: List of the command argumants. */
 enum ufe_apply_config_cmd_args {
   AC_CMD_ASIC0    = 0x1,
   AC_CMD_ASIC1    = 0x2,
@@ -141,6 +399,8 @@ enum ufe_apply_config_cmd_args {
   AC_CMD_FPGA     = 0x8
 };
 
+
+/** APPLY_CONFIG: List of the answer argumants. */
 enum ufe_apply_config_answ_args {
   AC_ANSW_WWID  = 0x1,
   AC_ANSW_WCID  = 0x2,
@@ -153,8 +413,35 @@ enum ufe_apply_config_answ_args {
   AC_ANSW_WVAL  = 0x2000
 };
 
+
+/** \brief Gets the name of the command from the Command Identifier.
+ *  \param command_id: Command identifier (unique number).
+ *  \returns The name of the command as string.
+ */
+const char * get_command_name(int command_id);
+
+
+/** \brief Prints the status of the board in a human-readable form.
+ *  \param status: Board status coded in 16 bits.
+ */
+void dump_status(uint16_t status);
+
+
+/** \brief Prints the direct parameters in a human-readable form.
+ *  \param params: Direct parameters coded in 16 bits.
+ */
+void dump_direct_params(uint16_t params);
+
+
+/** \brief Prints the readout parameters in a human-readable form.
+ *  \param params: Readout parameters coded in 16 bits.
+ */
+void dump_readout_params(uint16_t params);
+
 #ifdef __cplusplus
 }
 #endif
 
 #endif
+
+

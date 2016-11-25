@@ -18,48 +18,46 @@
  *  \author   Yordan Karadzhov <Yordan.Karadzhov \at cern.ch>
  *            University of Geneva
  *
- *  \created  Oct 2016
+ *  \created  Nov 2016
  */
 
-#ifndef LIBUFE_TOOLS_H
-#define LIBUFE_TOOLS_H 1
-
-#include <libusb-1.0/libusb.h>
+#include <stdio.h>
+#include <string.h>
 
 #include "libufe.h"
-#include "libufe-core.h"
+#include "libufe-tools.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+int led_on(libusb_device_handle *dev_handle) {
 
-int arg_as_int(const char *arg);
-
-int get_arg_short(const char arg_name, int argc, char **argv);
-
-int get_arg_long(const char* arg_name, int argc, char **argv);
-
-int get_arg(const char arg_short, const char* arg_long, int argc, char **argv);
-
-int get_arg_val(const char arg_short, const char* arg_long, int argc, char **argv);
-
-typedef int (*ufe_user_func)(libusb_device_handle*);
-
-int on_device_do(ufe_cond_func cond_func, ufe_user_func user_func, int arg);
-
-int on_board_do(int board_id, ufe_user_func user_func);
-
-int on_all_boards_do(ufe_user_func user_func);
-
-#define   FIFO_PATH "/tmp/ufe_fifo"
-int ufe_open_fifo();
-
-int ufe_close_fifo(int fifo);
-
-
-#ifdef __cplusplus
+  return ufe_enable_led(dev_handle, 1);
 }
-#endif
 
-#endif
+int led_off(libusb_device_handle *dev_handle) {
 
+  return ufe_enable_led(dev_handle, 0);
+}
+
+void print_usage(char *argv) {
+  fprintf(stderr, "\nUsage: %s [OPTION] ARG \n\n", argv);
+  fprintf(stderr, "    ARG                 < 1 / 0 >       ( Turn On / Off )   [ required ]\n\n");
+}
+
+int main (int argc, char **argv) {
+
+  int turn_on = 1, status = 0;
+
+  if (argc != 2) {
+    print_usage(argv[0]);
+    return 1;
+  }
+
+  if (strcmp(argv[1], "0") == 0)
+    turn_on = 0;
+
+  if (turn_on)
+    status = on_all_boards_do(&led_on);
+  else
+    status = on_all_boards_do(&led_off);
+
+  return (status!=0)? 1 : 0;
+}

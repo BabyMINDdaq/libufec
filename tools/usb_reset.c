@@ -18,48 +18,40 @@
  *  \author   Yordan Karadzhov <Yordan.Karadzhov \at cern.ch>
  *            University of Geneva
  *
- *  \created  Oct 2016
+ *  \created  Nov 2016
  */
 
-#ifndef LIBUFE_TOOLS_H
-#define LIBUFE_TOOLS_H 1
-
-#include <libusb-1.0/libusb.h>
+#include <stdio.h>
 
 #include "libufe.h"
-#include "libufe-core.h"
+#include "libufe-tools.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+int usb_ep =-1;
 
-int arg_as_int(const char *arg);
-
-int get_arg_short(const char arg_name, int argc, char **argv);
-
-int get_arg_long(const char* arg_name, int argc, char **argv);
-
-int get_arg(const char arg_short, const char* arg_long, int argc, char **argv);
-
-int get_arg_val(const char arg_short, const char* arg_long, int argc, char **argv);
-
-typedef int (*ufe_user_func)(libusb_device_handle*);
-
-int on_device_do(ufe_cond_func cond_func, ufe_user_func user_func, int arg);
-
-int on_board_do(int board_id, ufe_user_func user_func);
-
-int on_all_boards_do(ufe_user_func user_func);
-
-#define   FIFO_PATH "/tmp/ufe_fifo"
-int ufe_open_fifo();
-
-int ufe_close_fifo(int fifo);
-
-
-#ifdef __cplusplus
+int usb_reset(libusb_device_handle *dev_handle) {
+  return ufe_epxin_reset(dev_handle, usb_ep);
 }
-#endif
 
-#endif
+int main (int argc, char **argv) {
+
+  int x_arg = get_arg_val('i', "product-id", argc, argv);
+  int y_arg = get_arg_val('e', "end-point", argc, argv);
+
+  if (x_arg == 0 || y_arg == 0) {
+    fprintf(stderr, "\nUsage: %s [OPTIONS] \n\n", argv[0]);
+    fprintf(stderr, "    -i / --product-id   <int dec/hex> :  USB Product Id   [ required ]\n");
+    fprintf(stderr, "    -e / --end-point    <int dec/hex> :  USB End Point Id [ required ]\n\n");
+    return 1;
+  }
+
+  int usb_product_id = arg_as_int(argv[x_arg]);
+  usb_ep             = arg_as_int(argv[y_arg]);
+
+  int status = on_device_do(usb_product_id, &usb_reset);
+  if (status != 1)
+    return 1;
+
+  return 0;
+}
+
 

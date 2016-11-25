@@ -11,14 +11,19 @@ set(EXECUTABLE_OUTPUT_PATH "${CMAKE_SOURCE_DIR}/bin")
 include(${CMAKE_BINARY_DIR}/FindLibUsb.cmake)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -O3")
+# set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lpthread")
 
-if (VERBOSE GREATER 1)
+if (_VERBOSE GREATER 0)
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DUFE_WARNING")
+endif (_VERBOSE GREATER 0)
+
+if (_VERBOSE GREATER 1)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DUFE_INFO")
-endif (VERBOSE GREATER 1)
+endif (_VERBOSE GREATER 1)
 
-if (VERBOSE GREATER 2)
+if (_VERBOSE GREATER 2)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DUFE_DEBUG")
-endif (VERBOSE GREATER 2)
+endif (_VERBOSE GREATER 2)
 
 include_directories(  ${CMAKE_SOURCE_DIR}/src)
 
@@ -30,8 +35,8 @@ message(STATUS "CXX flags    : " ${CMAKE_CXX_FLAGS})
 message(STATUS "Linker flags : " ${CMAKE_EXE_LINKER_FLAGS}\n)
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/src)
-add_subdirectory(${CMAKE_SOURCE_DIR}/examples)
+add_subdirectory(${CMAKE_SOURCE_DIR}/tools)
 
 set(THIS_USER $ENV{USER})
-configure_file(  ${CMAKE_BINARY_DIR}/config.h.cmake
+configure_file(  ${CMAKE_BINARY_DIR}/89-ufe-usb.rules.cmake
                  ${CMAKE_BINARY_DIR}/89-ufe-usb.rules)
