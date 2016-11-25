@@ -89,7 +89,7 @@ void ufe_set_readout_timeout(ufe_context *ctx, int t);
 
 /** \brief Gets a list of UFE devices currently attached to the system.
  *  \param ctx: The context of the session.
- *  \param feb_devs: output location for a list of UFE devices.
+ *  \param feb_devs: Output location for a list of UFE devices.
  *  \returns The number of devices in the outputted list, or a libusb_error according to error
  *  encountered by the backend.
  */
@@ -105,13 +105,26 @@ size_t ufe_get_device_list(libusb_context *ctx, libusb_device ***feb_devs);
 size_t ufe_get_bm_device_list(libusb_context *ctx, libusb_device ***feb_devs);
 
 
+/** \brief Opens a UFE device.
+ *  \param dev: Input location for a UFE devices.
+ *  \param handle: Output location for the device handle.
+ *  \returns 0 on success, or a LIBUSB_ERROR / UFE_ERROR code on failure.
+ */
 int ufe_open(libusb_device *dev, libusb_device_handle **handle);
 
 
+/** \brief Closes a UFE device.
+ *  \param handle: Input location for the device handle to be closed.
+ *  \returns 0 on success, or a LIBUSB_ERROR / UFE_ERROR code on failure.
+ */
 void ufe_close(libusb_device_handle *handle);
 
 
+/** \brief Gets the session context.
+ *  \returns Valid pointer if the context has been Initialized, else NULL.
+ */
 ufe_context* ufe_get_context();
+
 
 /** \brief Deinitialize libufec. Should be called after closing all open devices and before your
  *  application terminates.

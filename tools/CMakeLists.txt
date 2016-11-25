@@ -24,7 +24,4 @@ MESSAGE(STATUS "ufe-data-readout")
 add_executable (ufe-data-readout data_readout.c)
 target_link_libraries(ufe-data-readout ufec pthread)
 
-add_executable (dev-test test.c)
-target_link_libraries(dev-test ufec pthread)
-
 MESSAGE("")

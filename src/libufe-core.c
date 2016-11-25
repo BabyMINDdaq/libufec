@@ -89,7 +89,7 @@ bool is_bm_feb_with_id(libusb_device *dev, int board_id) {
 
 size_t ufe_get_custom_device_list(libusb_context *ctx, ufe_cond_func cond, libusb_device ***feb_devs, int arg) {
   libusb_device **devs;
-  size_t n_devs = libusb_get_device_list(ctx, &devs); //get the list of devices
+  ssize_t n_devs = libusb_get_device_list(ctx, &devs); //get the list of devices
   size_t n_febs = 0;
 
   if(n_devs < 0) {
