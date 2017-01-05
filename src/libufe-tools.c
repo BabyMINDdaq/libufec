@@ -30,6 +30,8 @@
 
 #include"libufe-tools.h"
 
+extern ufe_context *ufe_context_handler;
+
 int arg_as_int(const char *arg) {
   int my_arg;
   if (arg[0] == '0' && arg[1] == 'x')
@@ -79,63 +81,6 @@ int get_arg_val(const char arg_short, const char* arg_long, int argc, char **arg
   return 0;
 }
 
-int on_device_do(ufe_cond_func cond_func, ufe_user_func user_func, int arg) {
-
-  libusb_device_handle *dev_handle; //a device handle
-  ufe_context *ctx = NULL; //a libusb session
-  int status; //for return values
-
-  status = ufe_init(&ctx); //initialize the library for the session we just declared
-  if(status < 0) {
-    ufe_error_print("init Error. %i", status); //there was an error
-    return 1;
-  }
-
-  libusb_device **febs;
-//   size_t n_febs = ufe_get_device_list(ctx->usb_ctx_, &febs);
-  size_t n_febs = ufe_get_custom_device_list(ctx->usb_ctx_, cond_func, &febs, arg);
-
-  if (n_febs == 0) {
-    ufe_error_print("no UFE board found.");
-    ufe_exit(ctx);
-    return 1;
-  }
-
-  ufe_info_print("UFE boards found: %zu", n_febs);
-
-  int i;
-  for (i=0; i<n_febs; ++i) {
-    status = libusb_open(febs[i], &dev_handle);
-    if(dev_handle == NULL) {
-      ufe_error_print("cannot open device.");
-      return 1;
-    }
-
-    ufe_info_print("device opened.");
-    status = (*user_func)(dev_handle);
-    libusb_close(dev_handle);
-    ufe_info_print("device closed.");
-
-    if (status != 0) {
-      libusb_free_device_list(febs, 1);
-      ufe_exit(ctx);
-      return status;
-    }
-  }
-
-  libusb_free_device_list(febs, 1); //free/unref the selected devices.
-  ufe_exit(ctx);
-  return status;
-}
-
-int on_board_do(int board_id, ufe_user_func user_func) {
-  return on_device_do(&is_bm_feb_with_id, user_func, board_id);
-}
-
-int on_all_boards_do(ufe_user_func user_func) {
-  int dummy_arg=0;
-  return on_device_do(&is_bm_feb, user_func, dummy_arg);
-}
 
 int ufe_open_fifo() {
   int i=0, status = 0;
@@ -182,5 +127,110 @@ int ufe_close_fifo(int fifo) {
   usleep(1000);
   unlink(FIFO_PATH);
   return 0;
+}
+
+
+#define SIZE_STDIN     20
+#define SIZE_CONFBUFF  36
+
+int device_id, board_id;
+uint32_t conf_buffer[SIZE_CONFBUFF], conf_data_back[SIZE_CONFBUFF];
+char stdin_buff[SIZE_STDIN];
+FILE *conf_file;
+
+
+int load_config(libusb_device_handle *dev_handle, int board, int device, uint32_t *conf_data, int size) {
+
+  int status = ufe_set_config(dev_handle, board, device, conf_data);
+  if (status < 0)
+    return 1;
+
+  status = ufe_get_config(dev_handle, board, device, conf_data_back);
+  if (status < 0)
+    return 1;
+
+//   int i;
+//   for(i=0;i<size;++i) {
+//     if (conf_data[i]!=conf_data_back[i]) printf("* ");
+//     printf("0x%x 0x%x \n", conf_data[i], conf_data_back[i]);
+//   }
+
+  status = memcmp(conf_data, conf_data_back, size*4);
+  if (status != 0) {
+    fprintf(stderr, "\n!!! Error: On board %i, device %i - configuration mismatch.\n\n", board_id, device_id);
+    return 1;
+  }
+
+  return 0;
+}
+
+void get_conf_data() {
+  int i;
+  for (i=0; i<SIZE_CONFBUFF;++i) {
+    if ( fgets(stdin_buff, SIZE_STDIN, conf_file) == NULL )
+      break;
+
+    conf_buffer[i] = arg_as_int( stdin_buff );
+  }
+}
+
+int config_fpga(libusb_device_handle *dev_handle) {
+  device_id = 3;
+  get_conf_data();
+  int status = load_config(dev_handle, board_id, device_id, conf_buffer, SIZE_CONFBUFF);
+  if (status != 0)
+    return 1;
+
+  uint16_t arg = 0x8;
+  status = ufe_apply_config(dev_handle, board_id, &arg);
+  return status;
+}
+
+int config_asics(libusb_device_handle *dev_handle) {
+  int status = 0;
+  for (device_id=0; device_id<3; ++device_id) {
+    get_conf_data();
+    status = load_config(dev_handle, board_id, device_id, conf_buffer, SIZE_CONFBUFF);
+    if (status != 0)
+      return status;
+  }
+
+  uint16_t arg = 0x7;
+  status = ufe_apply_config(dev_handle, board_id, &arg);
+  return status;
+}
+
+int config_all(libusb_device_handle *dev_handle) {
+  int status = config_asics(dev_handle);
+  if (status == 0)
+    status = config_fpga(dev_handle);
+
+  return status;
+}
+
+int led_on(libusb_device_handle *dev_handle) {
+
+  return ufe_enable_led(dev_handle, 1);
+}
+
+int led_off(libusb_device_handle *dev_handle) {
+
+  return ufe_enable_led(dev_handle, 0);
+}
+
+int usb_ep =-1;
+int usb_reset(libusb_device_handle *dev_handle) {
+  return ufe_epxin_reset(dev_handle, usb_ep);
+}
+
+uint16_t data_16;
+int read_status(libusb_device_handle *dev_handle) {
+  int status = ufe_read_status(dev_handle, board_id, &data_16);
+//   printf("0x%x\n", data_16);
+  return status;
+}
+
+int set_param(libusb_device_handle *dev_handle) {
+  return ufe_set_direct_param(dev_handle, board_id, &data_16);
 }
 

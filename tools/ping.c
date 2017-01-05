@@ -22,40 +22,35 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 
 #include "libufe.h"
 #include "libufe-tools.h"
 
-extern uint16_t data_16;
-extern int board_id;
+int board_id;
+
+int ping(libusb_device_handle *dev_handle) {
+  return ufe_enable_led(dev_handle, 1);
+}
+
 
 void print_usage(char *argv) {
-  fprintf(stderr, "\nUsage: %s [OPTIONS] \n\n", argv);
-  fprintf(stderr, "    -b / --board-id     <int dec/hex>   ( Board Id )               [ required ]\n");
-  fprintf(stderr, "    -v / --verbose                      ( Print human readable )   [ optional ]\n\n");
+  fprintf(stderr, "\nUsage: %s [OPTION] ARG \n\n", argv);
+  fprintf(stderr, "    -b / --board-id     <int dec/hex>   ( Board Id )  [ required ]\n");
 }
 
 int main (int argc, char **argv) {
 
-  int board_id_arg = get_arg_val('b', "board-id", argc, argv);
-  int print_arg =        get_arg('v', "verbose",  argc, argv);
+  int board_id_arg = get_arg_val('b', "board-id"  , argc, argv);
 
-  if (board_id_arg == 0) {
+if (board_id_arg == 0) {
     print_usage(argv[0]);
     return 1;
   }
 
   board_id = arg_as_int(argv[board_id_arg]);
-  data_16 = 0;
 
-  int status = ufe_on_board_do(board_id, &read_status);
-  printf("0x%x\n", data_16);
-
-  if (status == 0 && print_arg) {
-    printf("On device 0x%x  board %i -> Status is: \n", BMFEB_PRODUCT_ID, board_id);
-    ufe_dump_status(data_16);
-    printf("\n");
-  }
+  int status = ufe_on_all_boards_do(&ping);
 
   return (status!=0)? 1 : 0;
 }

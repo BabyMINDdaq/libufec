@@ -26,28 +26,21 @@
 #include "libufe.h"
 #include "libufe-tools.h"
 
-int usb_ep =-1;
-
-int usb_reset(libusb_device_handle *dev_handle) {
-  return ufe_epxin_reset(dev_handle, usb_ep);
-}
+extern int usb_ep;
 
 int main (int argc, char **argv) {
 
-  int x_arg = get_arg_val('i', "product-id", argc, argv);
-  int y_arg = get_arg_val('e', "end-point", argc, argv);
+  int e_arg = get_arg_val('e', "end-point", argc, argv);
 
-  if (x_arg == 0 || y_arg == 0) {
+  if (e_arg == 0) {
     fprintf(stderr, "\nUsage: %s [OPTIONS] \n\n", argv[0]);
-    fprintf(stderr, "    -i / --product-id   <int dec/hex> :  USB Product Id   [ required ]\n");
     fprintf(stderr, "    -e / --end-point    <int dec/hex> :  USB End Point Id [ required ]\n\n");
     return 1;
   }
 
-  int usb_product_id = arg_as_int(argv[x_arg]);
-  usb_ep             = arg_as_int(argv[y_arg]);
+  usb_ep = arg_as_int(argv[e_arg]);
 
-  int status = on_device_do(usb_product_id, &usb_reset);
+  int status = ufe_on_all_boards_do(&usb_reset);
   if (status != 1)
     return 1;
 

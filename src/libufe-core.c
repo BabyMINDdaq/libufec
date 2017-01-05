@@ -189,7 +189,7 @@ int ufe_send_command_req( libusb_device_handle *ufe,
   // Send the command.
   int status = ufe_user_set_sync(ufe, 2, size, (uint8_t*) cmd);
   if (status < 0) {
-    const char* cmd_name = get_command_name(command_id);
+    const char* cmd_name = ufe_get_command_name(command_id);
     ufe_error_print("error during command %s ( board %i )", cmd_name, board_id);
     return status;
     }
@@ -212,7 +212,7 @@ int ufe_get_command_answer( libusb_device_handle *ufe,
   // Get the command answer.
   int status = ufe_user_get_sync(ufe, 2, size, (uint8_t*) answer);
   if (status < 0) {
-    const char* cmd_name = get_command_name(command_id);
+    const char* cmd_name = ufe_get_command_name(command_id);
     ufe_error_print("error during command %s ( board %i )", cmd_name, board_id);
     free(answer);
     return status;
@@ -220,7 +220,7 @@ int ufe_get_command_answer( libusb_device_handle *ufe,
 
   // Check for firmware errors.
   if ( (*answer & UFE_CMD_ID_MASK) >>  UFE_CMD_ID_SHIFT == ERROR_CMD_ID ) {
-    const char* cmd_name = get_command_name(command_id);
+    const char* cmd_name = ufe_get_command_name(command_id);
     ufe_error_print("Firmware Error ( 0x%4x ) after command %s.", *answer, cmd_name);
     **argv = *answer & UFE_ARGUMENT_MASK;
     free(answer);
@@ -232,7 +232,7 @@ int ufe_get_command_answer( libusb_device_handle *ufe,
   if ( (*answer & UFE_DW_ID_MASK)    >>  UFE_DW_ID_SHIFT   != CMD_HEADER_ID   ||
        (*answer & UFE_BOARD_ID_MASK) >>  UFE_BOARD_ID_SHIFT != board_id ||
        (*answer & UFE_CMD_ID_MASK)   >>  UFE_CMD_ID_SHIFT   != command_id ) {
-    const char* cmd_name = get_command_name(command_id);
+    const char* cmd_name = ufe_get_command_name(command_id);
     ufe_error_print("inconsistent answer header ( 0x%4x ) after command %s.",
              *answer, cmd_name);
     free(answer);
@@ -247,7 +247,7 @@ int ufe_get_command_answer( libusb_device_handle *ufe,
   // Check the header subcommand Id.
   if (sub_cmd_id >= 0) {
     if ( (*answer & UFE_SUBCMD_ID_MASK) >> UFE_SUBCMD_ID_SHIFT != sub_cmd_id ) {
-      const char* cmd_name = get_command_name(command_id);
+      const char* cmd_name = ufe_get_command_name(command_id);
       ufe_error_print("inconsistent answer header ( 0x%4x ) after command %s.",
                *answer, cmd_name);
       free(answer);
@@ -258,7 +258,7 @@ int ufe_get_command_answer( libusb_device_handle *ufe,
   // Check the number of arguments.
   if (argc > 1) {
     if ( (*answer & UFE_ARG_FR_NUM_MASK) != argc ) {
-      const char* cmd_name = get_command_name(command_id);
+      const char* cmd_name = ufe_get_command_name(command_id);
       ufe_error_print("inconsistent answer header ( 0x%4x ) after command %s.",
                *answer, cmd_name);
       free(answer);
@@ -271,7 +271,7 @@ int ufe_get_command_answer( libusb_device_handle *ufe,
       // Check the consistency of the argument.
       if ( (answer[i+1] & UFE_DW_ID_MASK)       >> UFE_DW_ID_SHIFT       != CMD_ARG_ID ||
            (answer[i+1] & UEF_FRAME_INDEX_MASK) >> UEF_FRAME_INDEX_SHIFT != i ) {
-        const char* cmd_name = get_command_name(command_id);
+        const char* cmd_name = ufe_get_command_name(command_id);
         ufe_error_print("inconsistent answer argument %i ( 0x%4x ) after command %s.",
                  i, answer[i+1], cmd_name);
         free(answer);
@@ -286,7 +286,7 @@ int ufe_get_command_answer( libusb_device_handle *ufe,
     if ( (answer[argc+1] & UFE_DW_ID_MASK)    >>  UFE_DW_ID_SHIFT    != CMD_TRAILER_ID  ||
          (answer[argc+1] & UFE_BOARD_ID_MASK) >>  UFE_BOARD_ID_SHIFT != board_id ||
          (answer[argc+1] & UFE_CMD_ID_MASK)   >>  UFE_CMD_ID_SHIFT   != command_id ) {
-      const char* cmd_name = get_command_name(command_id);
+      const char* cmd_name = ufe_get_command_name(command_id);
       ufe_error_print("inconsistent answer trailer ( 0x%4x ) after command %s.",
                answer[argc+1], cmd_name);
       free(answer);
@@ -297,7 +297,7 @@ int ufe_get_command_answer( libusb_device_handle *ufe,
     uint16_t answer_crc = crc(&crc16_context_handler, (uint8_t*) *argv, argc*2);
 //     printf("answer crc: 0x%x \n", answer_crc);
     if (answer_crc != (answer[argc+1] & crc16_context_handler.mask_)) {
-      const char* cmd_name = get_command_name(command_id);
+      const char* cmd_name = ufe_get_command_name(command_id);
       ufe_error_print("CRC16 mismatch after command %s.", cmd_name);
       free(answer);
       return UFE_INVALID_CMD_ANSWER_ERROR;
@@ -515,5 +515,62 @@ uint32_t crc( crc_context *this_crc,
   return l_crc;
 }
 
+int ufe_debug_print(const char *fmt, ...) {
+  int ret = 0;
+#ifdef UFE_DEBUG
+  if (ufe_get_verbose() >= 3) {
+    printf("### Debug: ");
+    va_list myargs;
+    va_start(myargs, fmt);
+    ret = vprintf(fmt, myargs);
+    va_end(myargs);
+    printf("\n");
+  }
+#endif
+  return ret;
+}
 
+int ufe_info_print(const char *fmt, ...) {
+  int ret = 0;
+#ifdef UFE_INFO
+  if (ufe_get_verbose() >=2 ) {
+    printf("+++ Info: ");
+    va_list myargs;
+    va_start(myargs, fmt);
+    ret = vprintf(fmt, myargs);
+    va_end(myargs);
+    printf("\n");
+  }
+#endif
+  return ret;
+}
+
+int ufe_warning_print(const char *fmt, ...) {
+  int ret = 0;
+#ifdef UFE_WARNING
+  if (ufe_get_verbose()>=1) {
+    fprintf(stderr, "*** Warning: ");
+    va_list myargs;
+    va_start(myargs, fmt);
+    ret = vprintf(fmt, myargs);
+    va_end(myargs);
+    printf("\n");
+  }
+#endif
+  return ret;
+}
+
+int ufe_error_print(const char *fmt, ...) {
+  int ret = 0;
+  if (ufe_get_verbose() >=0 ) {
+    fprintf(stderr, "\n!!! Error: ");
+    va_list myargs;
+    va_start(myargs, fmt);
+    ret = vprintf(fmt, myargs);
+    va_end(myargs);
+    printf("\n\n");
+  }
+
+  return ret;
+}
 

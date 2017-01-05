@@ -27,15 +27,6 @@
 #include "libufe.h"
 #include "libufe-tools.h"
 
-int led_on(libusb_device_handle *dev_handle) {
-
-  return ufe_enable_led(dev_handle, 1);
-}
-
-int led_off(libusb_device_handle *dev_handle) {
-
-  return ufe_enable_led(dev_handle, 0);
-}
 
 void print_usage(char *argv) {
   fprintf(stderr, "\nUsage: %s [OPTION] ARG \n\n", argv);
@@ -54,10 +45,14 @@ int main (int argc, char **argv) {
   if (strcmp(argv[1], "0") == 0)
     turn_on = 0;
 
+//   ufe_context *ctx = NULL;
+//   ufe_default_context(&ctx);
+//   ctx->verbose_ = 3;
+
   if (turn_on)
-    status = on_all_boards_do(&led_on);
+    status = ufe_on_all_boards_do(&led_on);
   else
-    status = on_all_boards_do(&led_off);
+    status = ufe_on_all_boards_do(&led_off);
 
   return (status!=0)? 1 : 0;
 }

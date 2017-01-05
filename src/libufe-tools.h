@@ -43,18 +43,34 @@ int get_arg(const char arg_short, const char* arg_long, int argc, char **argv);
 
 int get_arg_val(const char arg_short, const char* arg_long, int argc, char **argv);
 
-typedef int (*ufe_user_func)(libusb_device_handle*);
-
-int on_device_do(ufe_cond_func cond_func, ufe_user_func user_func, int arg);
-
-int on_board_do(int board_id, ufe_user_func user_func);
-
-int on_all_boards_do(ufe_user_func user_func);
 
 #define   FIFO_PATH "/tmp/ufe_fifo"
 int ufe_open_fifo();
 
 int ufe_close_fifo(int fifo);
+
+// Config
+int load_config(libusb_device_handle *dev_handle, int board, int device, uint32_t *conf_data, int size);
+
+int config_fpga(libusb_device_handle *dev_handle);
+
+int config_asics(libusb_device_handle *dev_handle);
+
+int config_all(libusb_device_handle *dev_handle);
+
+// Led ON
+int led_on(libusb_device_handle *dev_handle);
+
+int led_off(libusb_device_handle *dev_handle);
+
+// USB reset
+int usb_reset(libusb_device_handle *dev_handle);
+
+// Read status
+int read_status(libusb_device_handle *dev_handle);
+
+// Set parameter
+int set_param(libusb_device_handle *dev_handle);
 
 
 #ifdef __cplusplus

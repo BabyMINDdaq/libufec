@@ -60,10 +60,6 @@ bool is_bm_feb(libusb_device *dev, int dummy_arg);
 bool is_bm_feb_with_id(libusb_device *dev, int board_id);
 
 
-typedef bool (*ufe_cond_func)(libusb_device*, int arg);
-size_t ufe_get_custom_device_list(libusb_context *ctx, ufe_cond_func cond, libusb_device ***feb_devs, int arg);
-
-
 /** \brief Send a command.
  *  \param ufe: A device handle.
  *  \param board_id: Board identifier (unique number), addressed by this command.
@@ -124,50 +120,13 @@ int ufe_user_get_sync( libusb_device_handle *ufe, int ep, int size, uint8_t *dat
 
 int ufe_get_verbose();
 
-#ifdef UFE_DEBUG
-  #define ufe_debug_print(fmt, ...) \
-    do { if (ufe_get_verbose()>=3) { \
-      printf("### Debug: "); \
-      printf(fmt, ##__VA_ARGS__); \
-      printf("\n"); } \
-    } while (0)
-#else
-  #define ufe_debug_print(fmt, ...) \
-    do {} while (0)
-#endif
+int ufe_debug_print(const char *fmt, ...);
 
+int ufe_info_print(const char *fmt, ...);
 
-#ifdef UFE_INFO
-  #define ufe_info_print(fmt, ...) \
-    do { if (ufe_get_verbose()>=2) { \
-      printf("+++ Info: "); \
-      printf(fmt, ##__VA_ARGS__); \
-      printf("\n"); } \
-    } while (0)
-#else
-  #define ufe_info_print(fmt, ...) \
-    do {} while (0)
-#endif
+int ufe_warning_print(const char *fmt, ...);
 
-#ifdef UFE_WARNING
-  #define ufe_warning_print(fmt, ...) \
-    do { if (ufe_get_verbose()>=1) { \
-      fprintf(stderr, "*** Warning: "); \
-      fprintf(stderr, fmt, ##__VA_ARGS__); \
-      printf("\n"); } \
-    } while (0)
-#else
-  #define ufe_warning_print(fmt, ...) \
-    do {} while (0)
-#endif
-
-
-#define ufe_error_print(fmt, ...) \
-  do { if (ufe_get_verbose()>=0) { \
-    fprintf(stderr, "\n!!! Error: "); \
-    fprintf(stderr, fmt, ##__VA_ARGS__); \
-    fprintf(stderr, "\n\n"); }\
-  } while (0)
+int ufe_error_print(const char *fmt, ...);
 
 
 #define CLASS_REQUEST        0x20

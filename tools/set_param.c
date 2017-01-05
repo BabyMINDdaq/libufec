@@ -26,15 +26,10 @@
 #include "libufe.h"
 #include "libufe-tools.h"
 
-uint16_t data_16;
-int board_id;
+extern uint16_t data_16;
+extern int board_id;
 
 #define NOT_SET 0xFFFF
-
-int set_param(libusb_device_handle *dev_handle) {
-
-  return ufe_set_direct_param(dev_handle, board_id, &data_16);
-}
 
 void print_usage(char *argv) {
   fprintf(stderr, "\nUsage: %s [OPTIONS] \n\n", argv);
@@ -82,7 +77,7 @@ int main (int argc, char **argv) {
 
   if ( v_arg ) {
     printf("\nOn device 0x%x  board %i -> Setting direct params: 0x%x \n",BMFEB_PRODUCT_ID , board_id, data_16);
-    dump_direct_params(data_16);
+    ufe_dump_direct_params(data_16);
     printf("\n");
   }
 
@@ -90,7 +85,7 @@ int main (int argc, char **argv) {
 //   ufe_default_context(&ctx);
 //   ctx->verbose_ = 3;
 
-  int status = on_board_do(board_id, &set_param);
+  int status = ufe_on_board_do(board_id, &set_param);
 
   return (status!=0)? 1 : 0;
 }

@@ -41,14 +41,17 @@ extern crc_context crc21_context_handler;
 
 int ufe_default_context(ufe_context **context) {
   ufe_context *ctx;
+
   ctx = calloc(1, sizeof(*ctx));
   if (!ctx)
     return LIBUSB_ERROR_NO_MEM;
 
-  ctx->readout_timeout_ = 1000;
+  ctx->readout_buffer_size_ = 1024*32;
+  ctx->readout_timeout_ = 100;
   ctx->verbose_ = 1;
 
   if (ufe_context_handler) {
+
     free(ufe_context_handler);
   }
 
@@ -66,7 +69,9 @@ int ufe_default_context(ufe_context **context) {
 int ufe_init(ufe_context **context) {
   if (*context == NULL && ufe_context_handler == NULL) {
     // No ufe_context exists. Create a default one.
-    ufe_default_context(context);
+    int status = ufe_default_context(context);
+    if (status != 0)
+      return status;
   } else if (*context != NULL) {
     // The context handler is already set. Use it.
     ufe_context_handler = *context;
@@ -74,6 +79,8 @@ int ufe_init(ufe_context **context) {
     // The context is already set. Use it.
     *context = ufe_context_handler;
   }
+
+  ufe_debug_print("Starting a new session.");
 
   CRC_16_1A2EB_INIT(&crc16_context_handler);
   CRC_21_21BF1F_INIT(&crc21_context_handler);
@@ -101,11 +108,41 @@ size_t ufe_get_bm_device_list(libusb_context *ctx, libusb_device ***feb_devs) {
 }
 
 int ufe_open(libusb_device *dev, libusb_device_handle **handle) {
-  return libusb_open(dev, handle);
+  int status = libusb_open(dev, handle);
+  ufe_debug_print("Opening the device (%p).", (void*) *handle);
+  if (status !=0)
+    return status;
+
+  int fv = 0;
+  int board_id;
+
+  int x_verbose = ufe_get_context()->verbose_;
+  ufe_get_context()->verbose_ = 1;
+
+  for (board_id=0; board_id<256; ++board_id) {
+    if ( ufe_ping(*handle, board_id) ) {
+      status = ufe_firmware_version(*handle, board_id, &fv);
+      if (status !=0)
+        return status;
+
+      if (fv != BMFEB_FV) {
+        ufe_error_print("Unsupported firmware version ( 0x%x ).", fv);
+        return UFE_FIRMWARE_ERROR;
+      }
+    }
+  }
+
+  ufe_get_context()->verbose_ = x_verbose;
+  return 0;
 }
 
 void ufe_close(libusb_device_handle *handle) {
+  ufe_debug_print("Closing the device (%p).", (void*) handle);
   libusb_close(handle);
+}
+
+void ufe_free_device_list(libusb_device **list, int unref_devices) {
+  libusb_free_device_list(list, unref_devices);
 }
 
 ufe_context* ufe_get_context() {
@@ -113,8 +150,15 @@ ufe_context* ufe_get_context() {
 }
 
 void ufe_exit(ufe_context *ctx) {
-  libusb_exit(ctx->usb_ctx_);
-  free(ctx);
+  ufe_debug_print("Closing the session.");
+  if (ctx) {
+    libusb_exit(ctx->usb_ctx_);
+    free(ctx);
+  } else if (ufe_context_handler) {
+    libusb_exit(ufe_context_handler->usb_ctx_);
+    free(ufe_context_handler);
+  }
+  ufe_context_handler = NULL;
 }
 
 bool ufe_ping(libusb_device_handle *dev_handle, uint8_t board_id) {
@@ -253,7 +297,7 @@ int ufe_epxin_reset(libusb_device_handle *ufe, int ep_id) {
 }
 
 
-int ufe_read_buffer(libusb_device_handle *ufe, uint8_t* data, size_t size, int *actual) {
+int ufe_read_buffer(libusb_device_handle *ufe, uint8_t* data, /*size_t size,*/ int *actual) {
   // Prepare the End Point identifier.
   uint8_t ep_id = UFE_USB_EP1_IN | LIBUSB_ENDPOINT_IN;
 
@@ -261,12 +305,16 @@ int ufe_read_buffer(libusb_device_handle *ufe, uint8_t* data, size_t size, int *
   int status = libusb_bulk_transfer( ufe,
                                      ep_id,
                                      data,
-                                     size,
+//                                      size,
+                                     ufe_context_handler->readout_buffer_size_,
                                      actual,
 //                                      UFE_CMD_TIMEOUT);
                                      ufe_context_handler->readout_timeout_);
 
-  ufe_debug_print("data resieved from EP 1 ( %i, %g KB): 0x%x", status, (*actual)/1024., *((uint32_t *) data));
+  ufe_debug_print( "data resieved from EP 1 ( %i, %g KB): 0x%x",
+                   status,
+                   (*actual)/1024.,
+                   *((uint32_t *) data));
 
   return status;
 }
@@ -319,7 +367,7 @@ int ufe_firmware_version(libusb_device_handle *ufe, int board_id, int *data) {
 }
 
 int ufe_set_direct_param(libusb_device_handle *ufe, int board_id, uint16_t *data) {
-  ufe_info_print("executing command SET_DIRECT_PARAM ( board %i )", board_id);
+  ufe_info_print("executing command SET_DIRECT_PARAM ( board %i, par: 0x%x )", board_id, *data);
 
   int command_id = SET_DIRECT_PARAM_CMD_ID;
   int status=0;
@@ -508,7 +556,7 @@ int ufe_get_config(libusb_device_handle *ufe, int board_id, int device, uint32_t
 }
 
 int ufe_apply_config(libusb_device_handle *ufe, int board_id, uint16_t* data) {
-  ufe_info_print("executing command APPLY_CONFIG ( board %i, device %i )", board_id, *data);
+  ufe_info_print("executing command APPLY_CONFIG ( board %i, arg 0x%x )", board_id, *data);
 
   int command_id = APPLY_CONFIG_CMD_ID;
   int status=0;
@@ -535,7 +583,7 @@ int ufe_apply_config(libusb_device_handle *ufe, int board_id, uint16_t* data) {
                                    NO_SUB_CMD_ID,
                                    0,
                                    &data);
-  usleep(1);
+  usleep(70000);
   return status;
 }
 
@@ -575,8 +623,85 @@ int ufe_data_readout(libusb_device_handle *ufe, int board_id, uint16_t *data) {
   return status;
 }
 
+int ufe_on_device_do(ufe_cond_func cond_func, ufe_user_func user_func, int arg) {
 
-const char * get_command_name(int command_id) {
+  ufe_context *ctx = NULL; //a libusb session
+  int status; //for return values
+
+  status = ufe_init(&ctx); //initialize the library for the session we just declared
+  if(status < 0) {
+    ufe_error_print("init Error. %i", status); //there was an error
+    return 1;
+  }
+
+  status = ufe_in_session_on_device_do(cond_func, user_func, arg);
+
+  ufe_exit(ctx);
+  return status;
+}
+
+int ufe_in_session_on_device_do(ufe_cond_func cond_func, ufe_user_func user_func, int arg) {
+
+  libusb_device_handle *dev_handle; //a device handle
+  ufe_context *ctx = ufe_context_handler; //a libusb session
+  int status; //for return values
+
+  libusb_device **febs;
+//   size_t n_febs = ufe_get_device_list(ctx->usb_ctx_, &febs);
+  size_t n_febs = ufe_get_custom_device_list(ctx->usb_ctx_, cond_func, &febs, arg);
+
+  if (n_febs == 0) {
+    ufe_error_print("no UFE board found.");
+    return 1;
+  }
+
+  ufe_debug_print("UFE boards found: %zu", n_febs);
+
+  int i;
+  for (i=0; i<n_febs; ++i) {
+    status = ufe_open(febs[i], &dev_handle);
+
+    if(dev_handle == NULL) {
+      ufe_error_print("cannot open device.");
+      return 1;
+    }
+
+
+    ufe_debug_print("device opened.");
+    ufe_debug_print("speed: %i\n", libusb_get_device_speed(febs[i]));
+    status = (*user_func)(dev_handle);
+    libusb_close(dev_handle);
+    ufe_debug_print("device closed.");
+
+    if (status != 0) {
+      libusb_free_device_list(febs, 1);
+      return status;
+    }
+  }
+
+  libusb_free_device_list(febs, 1); //free/unref the selected devices.
+  return status;
+}
+
+int ufe_in_session_on_board_do(int board_id, ufe_user_func user_func) {
+  return ufe_in_session_on_device_do(&is_bm_feb_with_id, user_func, board_id);
+}
+
+int ufe_in_session_on_all_boards_do(ufe_user_func user_func) {
+  int dummy_arg=0;
+  return ufe_in_session_on_device_do(&is_bm_feb, user_func, dummy_arg);
+}
+
+int ufe_on_board_do(int board_id, ufe_user_func user_func) {
+  return ufe_on_device_do(&is_bm_feb_with_id, user_func, board_id);
+}
+
+int ufe_on_all_boards_do(ufe_user_func user_func) {
+  int dummy_arg=0;
+  return ufe_on_device_do(&is_bm_feb, user_func, dummy_arg);
+}
+
+const char * ufe_get_command_name(int command_id) {
   char *name = (char*) malloc(20);
   switch (command_id) {
     case DATA_READOUT_CMD_ID:
@@ -613,7 +738,7 @@ const char * get_command_name(int command_id) {
   return name;
 }
 
-void dump_status(uint16_t status) {
+void ufe_dump_status(uint16_t status) {
   printf("GTEN: ....... %i\n", !!(status & RS_GTEN));
   printf("AVE: ........ %i\n", !!(status & RS_AVE));
   printf("L0F_ERR: .... %i\n", !!(status & RS_L0F_ERR));
@@ -629,7 +754,7 @@ void dump_status(uint16_t status) {
   printf("IGEN: ....... %i\n", !!(status & RS_IGEN));
 }
 
-void dump_direct_params(uint16_t params) {
+void ufe_dump_direct_params(uint16_t params) {
   printf("RSTA: ....... %i\n", !!(params & SDP_RSTA));
   printf("RTTA: ....... %i\n", !!(params & SDP_RTTA));
   printf("RL0F: ....... %i\n", !!(params & SDP_RL0F));
@@ -644,7 +769,7 @@ void dump_direct_params(uint16_t params) {
   printf("FCLR: ....... %i\n", !!(params & SDP_FCLR));
 }
 
-void dump_readout_params(uint16_t params) {
+void ufe_dump_readout_params(uint16_t params) {
   if ( !!(params & DR_STOP) )
     printf("STOP: ....... true\n");
   else

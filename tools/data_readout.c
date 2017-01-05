@@ -36,25 +36,22 @@
 int board_id, time_s, data_fifo=-1;
 uint16_t data_16;
 char file_name[30];
+uint8_t *data_out;
 
 #define NOT_SET   0xFFFF
-#define BUF_SIZE  2048
-#define fifo_name "/tmp/ufe_fifo"
 
 void* get_data(void *dev) {
   libusb_device_handle *dev_handle = (libusb_device_handle*) dev;
   FILE *bFile = fopen (file_name, "wb");
 
-  uint8_t *data_out = (uint8_t*) malloc(BUF_SIZE);
   int actual_read=0;
-  while (ufe_read_buffer(dev_handle, data_out, BUF_SIZE, &actual_read) == 0) {
+  while (ufe_read_buffer(dev_handle, data_out, &actual_read) == 0) {
     if (actual_read == 0)
       break;
 
     fwrite(data_out , sizeof(uint8_t), actual_read, bFile);
   }
 
-  free(data_out);
   fclose (bFile);
 
   return NULL;
@@ -62,9 +59,8 @@ void* get_data(void *dev) {
 
 void* get_data_to_fifo(void *dev) {
   libusb_device_handle *dev_handle = (libusb_device_handle*) dev;
-  uint8_t *data_out = (uint8_t*) malloc(BUF_SIZE);
   int actual_read=0, status;
-  while ((status = ufe_read_buffer(dev_handle, data_out, BUF_SIZE, &actual_read)) == 0) {
+  while ((status = ufe_read_buffer(dev_handle, data_out, &actual_read)) == 0) {
     if (actual_read == 0)
       break;
 
@@ -76,7 +72,6 @@ void* get_data_to_fifo(void *dev) {
   }
 
   ufe_close_fifo(data_fifo);
-  free(data_out);
   return NULL;
 }
 
@@ -109,7 +104,6 @@ int readout(libusb_device_handle *dev_handle) {
 
   return status;
 }
-
 
 void print_usage(char *argv) {
   fprintf(stderr, "\nUsage: %s [OPTION] ARG \n\n", argv);
@@ -174,8 +168,10 @@ int main (int argc, char **argv) {
   }
 
   if ( v_arg ) {
-    printf("\nOn device 0x%x  board %i -> Setting readout params: 0x%x \n", BMFEB_PRODUCT_ID, board_id, data_16);
-    dump_readout_params(data_16);
+    printf("\nOn device 0x%x  board %i -> Setting readout params: 0x%x \n", BMFEB_PRODUCT_ID,
+                                                                            board_id,
+                                                                            data_16);
+    ufe_dump_readout_params(data_16);
     printf("\n");
   }
 
@@ -187,8 +183,15 @@ int main (int argc, char **argv) {
       return 1;
   }
 
-  int status = on_board_do(board_id, &readout);
+  ufe_context *ctx = NULL;
+  ufe_default_context(&ctx);
+//   ctx->readout_buffer_size_ = 1024*64;
+//   ctx->verbose_ = 3;
+  data_out = (uint8_t*) malloc(ctx->readout_buffer_size_);
 
+  int status = ufe_on_board_do(board_id, &readout);
+
+  free(data_out);
   return (status)? 0 : 1;
 }
 

@@ -29,8 +29,50 @@
 #include "libufe.h"
 #include "libufe-tools.h"
 
+#define SIZE_CONFBUFF  36
+
 extern int board_id;
-extern FILE *conf_file;
+extern uint32_t conf_data_back[SIZE_CONFBUFF];
+
+int get_config_fpga(libusb_device_handle *dev_handle) {
+  int status = ufe_get_config(dev_handle, board_id, 3, conf_data_back);
+  if (status < 0)
+    return 1;
+
+  int i;
+  for(i=0;i<SIZE_CONFBUFF;++i) {
+    printf("0x%x\n", conf_data_back[i]);
+  }
+
+  return 0;
+}
+
+int get_config_asics(libusb_device_handle *dev_handle) {
+  int status = 0;
+  int device_id;
+  for (device_id=0; device_id<3; ++device_id) {
+    status = ufe_get_config(dev_handle, board_id, device_id, conf_data_back);
+    if (status < 0)
+      return 1;
+
+    int i;
+    for(i=0;i<SIZE_CONFBUFF;++i) {
+      printf("0x%x\n", conf_data_back[i]);
+    }
+  }
+
+  return 0;
+}
+
+int get_config_all(libusb_device_handle *dev_handle) {
+  int status = get_config_asics(dev_handle);
+  if (status != 0)
+    return 1;
+
+  status = get_config_fpga(dev_handle);
+  return status;
+}
+
 
 void print_usage(char *argv) {
   fprintf(stderr, "\nUsage: %s [OPTIONS] \n\n", argv);
@@ -38,19 +80,15 @@ void print_usage(char *argv) {
   fprintf(stderr, "    -a / --asics                         ( Configure the 3 asics )                [ optional OR f/d ]\n");
   fprintf(stderr, "    -f / --fpga                          ( Configure the fpga )                   [ optional OR a/d ]\n");
   fprintf(stderr, "    -d / --all-devices                   ( Configure all devices )                [ optional OR a/f ]\n");
-  fprintf(stderr, "    -c / --config-file   <string>        ( Text file containing the config bits ) [ optional OR s ]\n");
-  fprintf(stderr, "    -s / --stdin                         ( Config bit array from stdin )          [ optional OR c ]\n\n");
 }
 
 
 int main (int argc, char **argv) {
 
   int board_id_arg  = get_arg_val('b', "board-id"    , argc, argv);
-  int file_arg      = get_arg_val('c', "config-file" , argc, argv);
   int asics_arg         = get_arg('a', "asics"       , argc, argv);
   int fpga_arg          = get_arg('f', "fpga"        , argc, argv);
   int all_devices_arg   = get_arg('d', "all-devices" , argc, argv);
-  int pipe_arg          = get_arg('s', "stdin"       , argc, argv);
 
   if (board_id_arg == 0) {
     print_usage(argv[0]);
@@ -62,36 +100,25 @@ int main (int argc, char **argv) {
     return 1;
   }
 
-  if (!( (file_arg == 0) ^ (pipe_arg == 0) )) {
-    print_usage(argv[0]);
-    return 1;
-  }
-
   board_id  = arg_as_int(argv[board_id_arg]);
-
-  if (pipe_arg != 0)
-    conf_file = stdin;
-  else {
-    conf_file = fopen(argv[file_arg], "r");
-    if(!conf_file) {
-      fprintf(stderr, "\n!!! Error: can not open file %s \n\n", argv[file_arg]);
-      return 1;
-    }
-  }
-
   int status = 0;
+
+  ufe_context *ctx = NULL;
+  ufe_default_context(&ctx);
+  ctx->verbose_ = 3;
+
   if ( all_devices_arg != 0 ||
        (fpga_arg != 0 && asics_arg != 0) ) {
-    status = ufe_on_board_do(board_id, &config_all);
+    status = ufe_on_board_do(board_id, &get_config_all);
     if (status!=0)
       return 1;
 
   } else if (fpga_arg != 0) {
-    status = ufe_on_board_do(board_id, &config_fpga);
+    status = ufe_on_board_do(board_id, &get_config_fpga);
     if (status!=0)
       return 1;
   } else {
-    status = ufe_on_board_do(board_id, &config_asics);
+    status = ufe_on_board_do(board_id, &get_config_asics);
     if (status!=0)
       return 1;
   }
