@@ -99,12 +99,12 @@ void ufe_set_readout_timeout(ufe_context *ctx, int t) {
 
 size_t ufe_get_device_list(libusb_context *ctx, libusb_device ***feb_devs) {
   int dummy_arg=0;
-  return ufe_get_custom_device_list(ctx, &is_ufe, feb_devs, dummy_arg);
+  return ufe_get_custom_device_list(ctx, &is_ufe, dummy_arg, feb_devs);
 }
 
 size_t ufe_get_bm_device_list(libusb_context *ctx, libusb_device ***feb_devs) {
   int dummy_arg=0;
-  return ufe_get_custom_device_list(ctx, &is_bm_feb, feb_devs, dummy_arg);
+  return ufe_get_custom_device_list(ctx, &is_bm_feb, dummy_arg, feb_devs);
 }
 
 int ufe_open(libusb_device *dev, libusb_device_handle **handle) {
@@ -623,7 +623,39 @@ int ufe_data_readout(libusb_device_handle *ufe, int board_id, uint16_t *data) {
   return status;
 }
 
-int ufe_on_device_do(ufe_cond_func cond_func, ufe_user_func user_func, int arg) {
+size_t ufe_get_custom_device_list(libusb_context *ctx, ufe_cond_func cond, int arg, libusb_device ***feb_devs) {
+  libusb_device **devs;
+  ssize_t n_devs = libusb_get_device_list(ctx, &devs); //get the list of devices
+  size_t n_febs = 0;
+
+  if(n_devs < 0) {
+    ufe_error_print("Device Error."); //there was an error
+    return 0;
+  }
+
+  uint8_t* dev_id = (uint8_t*) calloc(n_devs, sizeof(uint8_t));
+  int i_dev, i_feb = 0;
+  for(i_dev = 0; i_dev < n_devs; i_dev++) {
+    if ( (*cond)(devs[i_dev], arg) ) {
+      dev_id[n_febs++] = i_dev;
+    }
+  }
+
+  libusb_device **febs_found = (libusb_device**) calloc(n_febs, sizeof(struct libusb_device*));
+
+  for(i_dev = 0; i_dev < n_febs; i_dev++) {
+    int x_dev = dev_id[i_dev];
+    febs_found[i_feb++] = libusb_ref_device(devs[x_dev]);
+  }
+
+  free(dev_id);
+
+  *feb_devs = febs_found;
+  libusb_free_device_list(devs, 1); //free the list, unref the devices in it
+  return n_febs;
+}
+
+int ufe_on_device_do(ufe_cond_func cond_func, int arg, ufe_user_func user_func) {
 
   ufe_context *ctx = NULL; //a libusb session
   int status; //for return values
@@ -634,21 +666,20 @@ int ufe_on_device_do(ufe_cond_func cond_func, ufe_user_func user_func, int arg) 
     return 1;
   }
 
-  status = ufe_in_session_on_device_do(cond_func, user_func, arg);
+  status = ufe_in_session_on_device_do(cond_func, arg, user_func);
 
   ufe_exit(ctx);
   return status;
 }
 
-int ufe_in_session_on_device_do(ufe_cond_func cond_func, ufe_user_func user_func, int arg) {
+int ufe_in_session_on_device_do(ufe_cond_func cond_func, int arg, ufe_user_func user_func) {
 
   libusb_device_handle *dev_handle; //a device handle
   ufe_context *ctx = ufe_context_handler; //a libusb session
   int status; //for return values
 
   libusb_device **febs;
-//   size_t n_febs = ufe_get_device_list(ctx->usb_ctx_, &febs);
-  size_t n_febs = ufe_get_custom_device_list(ctx->usb_ctx_, cond_func, &febs, arg);
+  size_t n_febs = ufe_get_custom_device_list(ctx->usb_ctx_, cond_func, arg, &febs);
 
   if (n_febs == 0) {
     ufe_error_print("no UFE board found.");
@@ -684,21 +715,21 @@ int ufe_in_session_on_device_do(ufe_cond_func cond_func, ufe_user_func user_func
 }
 
 int ufe_in_session_on_board_do(int board_id, ufe_user_func user_func) {
-  return ufe_in_session_on_device_do(&is_bm_feb_with_id, user_func, board_id);
+  return ufe_in_session_on_device_do(&is_bm_feb_with_id, board_id, user_func);
 }
 
 int ufe_in_session_on_all_boards_do(ufe_user_func user_func) {
   int dummy_arg=0;
-  return ufe_in_session_on_device_do(&is_bm_feb, user_func, dummy_arg);
+  return ufe_in_session_on_device_do(&is_bm_feb, dummy_arg, user_func);
 }
 
 int ufe_on_board_do(int board_id, ufe_user_func user_func) {
-  return ufe_on_device_do(&is_bm_feb_with_id, user_func, board_id);
+  return ufe_on_device_do(&is_bm_feb_with_id, board_id, user_func);
 }
 
 int ufe_on_all_boards_do(ufe_user_func user_func) {
   int dummy_arg=0;
-  return ufe_on_device_do(&is_bm_feb, user_func, dummy_arg);
+  return ufe_on_device_do(&is_bm_feb, dummy_arg, user_func);
 }
 
 const char * ufe_get_command_name(int command_id) {

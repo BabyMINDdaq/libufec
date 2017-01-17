@@ -87,37 +87,6 @@ bool is_bm_feb_with_id(libusb_device *dev, int board_id) {
   return false;
 }
 
-size_t ufe_get_custom_device_list(libusb_context *ctx, ufe_cond_func cond, libusb_device ***feb_devs, int arg) {
-  libusb_device **devs;
-  ssize_t n_devs = libusb_get_device_list(ctx, &devs); //get the list of devices
-  size_t n_febs = 0;
-
-  if(n_devs < 0) {
-    ufe_error_print("Device Error."); //there was an error
-    return 0;
-  }
-
-  uint8_t* dev_id = (uint8_t*) calloc(n_devs, sizeof(uint8_t));
-  int i_dev, i_feb = 0;
-  for(i_dev = 0; i_dev < n_devs; i_dev++) {
-    if ( (*cond)(devs[i_dev], arg) ) {
-      dev_id[n_febs++] = i_dev;
-    }
-  }
-
-  libusb_device **febs_found = (libusb_device**) calloc(n_febs, sizeof(struct libusb_device*));
-
-  for(i_dev = 0; i_dev < n_febs; i_dev++) {
-    int x_dev = dev_id[i_dev];
-    febs_found[i_feb++] = libusb_ref_device(devs[x_dev]);
-  }
-
-  free(dev_id);
-
-  *feb_devs = febs_found;
-  libusb_free_device_list(devs, 1); //free the list, unref the devices in it
-  return n_febs;
-}
 
 crc_context crc16_context_handler;
 crc_context crc21_context_handler;

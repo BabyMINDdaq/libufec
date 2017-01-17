@@ -1,14 +1,21 @@
 About:
 ------------------------------------------------------------
-LibUfec software is part of BabyMINDdaq software package and is
-designed for internal use for the Baby MIND detector collaboration
-and is tailored for this use primarily.
+LibUfec software is part of BabyMINDdaq software package. The library
+provides API for communicating with the BabyMIND front-end board.
+Various tools for communication with the board are available. The tools
+can be used directly, or as example for further development. LibUfec is
+designed for internal use for the Baby MIND detector collaboration and
+is tailored for this use primarily.
 
 Third Party Software:
 ------------------------------------------------------------
 In order to install libUSB on Ubuntu do the following:
 
 sudo apt-get install libusb-1.0-0-dev
+
+In order to install libUSB on Centos as root do the following:
+
+yum install libusb
 
 
 Install:
@@ -20,8 +27,8 @@ cmake ../
 make
 
 1.1 The verbosity level of the output can be controled by passing
-extra -D_VERBOSE=VALUE command line arguments to CMake. The
-available options are listed below:
+extra -D_VERBOSE=VALUE command line arguments to CMake. The available
+options are listed below (default is 2):
   0 - only error messages are printed;
   1 - only error / warning messages are printed;
   2 - only error / warning / info messages are printed;

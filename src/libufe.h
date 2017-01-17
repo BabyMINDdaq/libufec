@@ -465,73 +465,79 @@ void ufe_dump_direct_params(uint16_t params);
 void ufe_dump_readout_params(uint16_t params);
 
 
-/**  */
+/** Type of the devices spellection function. */
 typedef int (*ufe_user_func)(libusb_device_handle*);
 
 
-/**  */
+/** Type of the user action function. */
 typedef bool (*ufe_cond_func)(libusb_device*, int arg);
 
 
-/** \brief 
- *  \param ctx: 
- *  \param cond_func: 
- *  \param feb_devs: 
- *  \param arg: 
- *  \returns 
+/** \brief Prepares a list of usb devices selected according a criteria provided by the user.
+ *  \param ctx:  The context to operate on.
+ *  \param cond_func: A function to be used for spellection of the devices, to be included in the list.
+ *  \param arg: Argumant for the spellection function.
+ *  \param feb_devs: Output location for the list of devices.
+ *  \returns number of devices found.
  */
 size_t ufe_get_custom_device_list( libusb_context *ctx,
                                    ufe_cond_func cond_func,
-                                   libusb_device ***feb_devs,
-                                   int arg);
+                                   int arg,
+                                   libusb_device ***feb_devs);
 
 
-/**  \brief 
- *  \param ctx: 
- *  \param cond_func: 
- *  \param user_func: 
- *  \param arg: 
- *  \returns 
+/** \brief Executes an action specified by the user over a list of usb devices selected according a criteria
+ *  provided by the user. New session is created in the beginning and closed at the end.
+ *  \param ctx: The context to operate on.
+ *  \param cond_func: A function to be used for spellection of the devices, to be included in the list.
+ *  \param arg: Argumant for the spellection function.
+ *  \param user_func: A function defining the user action.
+ *  \returns 0 on success, or a LIBUSB_ERROR / UFE_ERROR code on failure.
  */
-int ufe_on_device_do(ufe_cond_func cond_func, ufe_user_func user_func, int arg);
+int ufe_on_device_do(ufe_cond_func cond_func, int arg, ufe_user_func user_func);
 
 
-/**  \brief 
- *  \param board_id: 
- *  \param user_func: 
- *  \returns 
+/** \brief Executes an action specified by the user over a particular Baby MIND FEB. New session is created
+ *  in the beginning and closed at the end.
+ *  \param board_id: Identifier (unique number) of the board, addressed by this command.
+ *  \param user_func: A function defining the user action.
+ *  \returns 0 on success, or a LIBUSB_ERROR / UFE_ERROR code on failure.
  */
 int ufe_on_board_do(int board_id, ufe_user_func user_func);
 
 
-/**  \brief 
- *  \param user_func: 
- *  \returns 
+/** \brief Executes an action specified by the user over all Baby MIND FEB. New session is created in the
+ *  beginning and closed at the end.
+ *  \param user_func: A function defining the user action.
+ *  \returns 0 on success, or a LIBUSB_ERROR / UFE_ERROR code on failure.
  */
 int ufe_on_all_boards_do(ufe_user_func user_func);
 
 
-/**  \brief 
- *  \param ctx: 
- *  \param cond_func: 
- *  \param user_func: 
- *  \param arg: 
- *  \returns 
+/** \brief Executes an action specified by the user over a list of usb devices selected according a criteria
+ *  provided by the user. To be called in an existing (already open) usb session.
+ *  \param ctx: The context to operate on.
+ *  \param cond_func: A function to be used for spellection of the devices, to be included in the list.
+ *  \param arg: Argumant for the spellection function.
+ *  \param user_func: A function defining the user action.
+ *  \returns 0 on success, or a LIBUSB_ERROR / UFE_ERROR code on failure.
  */
-int ufe_in_session_on_device_do(ufe_cond_func cond_func, ufe_user_func user_func, int arg);
+int ufe_in_session_on_device_do(ufe_cond_func cond_func, int arg, ufe_user_func user_func);
 
 
-/**  \brief 
- *  \param board_id: 
- *  \param user_func: 
- *  \returns 
+/** \brief Executes an action specified by the user over a particular Baby MIND FEB. To be called in an existing
+ *  (already open) usb session.
+ *  \param board_id: Identifier (unique number) of the board, addressed by this command.
+ *  \param user_func: A function defining the user action.
+ *  \returns 0 on success, or a LIBUSB_ERROR / UFE_ERROR code on failure.
  */
 int ufe_in_session_on_board_do(int board_id, ufe_user_func user_func);
 
 
-/**  \brief 
- *  \param user_func: 
- *  \returns 
+/** \brief Executes an action specified by the user over all Baby MIND FEB. To be called in an existing
+ *  (already open) usb session.
+ *  \param user_func: A function defining the user action.
+ *  \returns 0 on success, or a LIBUSB_ERROR / UFE_ERROR code on failure.
  */
 int ufe_in_session_on_all_boards_do(ufe_user_func user_func);
 

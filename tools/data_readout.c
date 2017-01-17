@@ -186,7 +186,9 @@ int main (int argc, char **argv) {
   ufe_context *ctx = NULL;
   ufe_default_context(&ctx);
 //   ctx->readout_buffer_size_ = 1024*64;
+  ctx->readout_timeout_= 1000;
 //   ctx->verbose_ = 3;
+
   data_out = (uint8_t*) malloc(ctx->readout_buffer_size_);
 
   int status = ufe_on_board_do(board_id, &readout);
