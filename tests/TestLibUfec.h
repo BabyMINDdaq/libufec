@@ -18,43 +18,39 @@
  *  \author   Yordan Karadzhov <Yordan.Karadzhov \at cern.ch>
  *            University of Geneva
  *
- *  \created  Nov 2016
+ *  \created  Jan 2017
  */
 
-#include <stdio.h>
-#include <string.h>
+#ifndef LIBUFEC_TEST_H_
+#define LIBUFEC_TEST_H_
 
+// CppUnit
+#include <cppunit/TestFixture.h>
+#include <cppunit/extensions/HelperMacros.h>
+
+// libufec
 #include "libufe.h"
-#include "libufe-tools.h"
+#include "libufe-core.h"
 
-int board_id;
+class TestLibUfec : public CppUnit::TestFixture {
+ public:
+  void setUp();
+  void tearDown();
 
-int ping(libusb_device_handle *dev_handle) {
-  return ufe_ping(dev_handle, board_id);
-}
+ protected:
+  void TestContext();
+  void TestPrint();
 
+ private:
+  CPPUNIT_TEST_SUITE( TestLibUfec );
+  CPPUNIT_TEST( TestContext );
+//   CPPUNIT_TEST(  );
+//   CPPUNIT_TEST(  );
+//   CPPUNIT_TEST(  );
+//   CPPUNIT_TEST(  );
+//   CPPUNIT_TEST(  );
+  CPPUNIT_TEST( TestPrint );
+  CPPUNIT_TEST_SUITE_END();
+};
 
-void print_usage(char *argv) {
-  fprintf(stderr, "\nUsage: %s [OPTION] ARG \n\n", argv);
-  fprintf(stderr, "    -b / --board-id     <int dec/hex>   ( Board Id )  [ required ]\n");
-}
-
-int main (int argc, char **argv) {
-
-  int board_id_arg = get_arg_val('b', "board-id"  , argc, argv);
-
-if (board_id_arg == 0) {
-    print_usage(argv[0]);
-    return 1;
-  }
-
-  board_id = arg_as_int(argv[board_id_arg]);
-
-  ufe_context *ctx = NULL;
-  ufe_default_context(&ctx);
-  ctx->verbose_ = 2;
-
-  int status = ufe_on_all_boards_do(&ping);
-
-  return (status!=0)? 1 : 0;
-}
+#endif

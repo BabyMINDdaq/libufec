@@ -9,24 +9,29 @@ set(LIBRARY_OUTPUT_PATH    "${CMAKE_SOURCE_DIR}/lib")
 set(EXECUTABLE_OUTPUT_PATH "${CMAKE_SOURCE_DIR}/bin")
 
 include(${CMAKE_BINARY_DIR}/FindLibUsb.cmake)
+include(${CMAKE_BINARY_DIR}/FindCppUnit.cmake)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -O3")
 # set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lpthread")
 
 if (NOT DEFINED _VERBOSE)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DUFE_WARNING -DUFE_INFO")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUFE_WARNING -DUFE_INFO")
 endif()
 
 if (_VERBOSE GREATER 0)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DUFE_WARNING")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUFE_WARNING")
 endif (_VERBOSE GREATER 0)
 
 if (_VERBOSE GREATER 1)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DUFE_INFO")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUFE_INFO")
 endif (_VERBOSE GREATER 1)
 
 if (_VERBOSE GREATER 2)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DUFE_DEBUG")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUFE_DEBUG")
 endif (_VERBOSE GREATER 2)
 
 include_directories(  ${CMAKE_SOURCE_DIR}/src)
@@ -40,6 +45,10 @@ message(STATUS "Linker flags : " ${CMAKE_EXE_LINKER_FLAGS}\n)
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/src)
 add_subdirectory(${CMAKE_SOURCE_DIR}/tools)
+
+if    (CPPUNIT_FOUND)
+  add_subdirectory(${CMAKE_SOURCE_DIR}/tests)
+endif (CPPUNIT_FOUND)
 
 set(THIS_USER $ENV{USER})
 configure_file(  ${CMAKE_BINARY_DIR}/89-ufe-usb.rules.cmake

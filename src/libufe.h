@@ -283,69 +283,6 @@ int ufe_apply_config(libusb_device_handle *ufe, int board_id, uint16_t *data);
 int ufe_read_buffer(libusb_device_handle *ufe, uint8_t* data,/* size_t size,*/ int *actual);
 
 
-/** \brief Send a command.
- *  \param ufe: A device handle.
- *  \param board_id: Identifier (unique number) of the board, addressed by this command.
- *  \param command_id: Command identifier (unique number).
- *  \param sub_cmd_id: Subcommand identifier (unique number).
- *  \param argc: Number of argumants.
- *  \param argv: Intput location for the command's argumants data.
- *  \returns 0 on success, or a LIBUSB_ERROR / UFE_ERROR code on failure.
- */
-int send_command_req( libusb_device_handle *ufe,
-                      int board_id,
-                      int command_id,
-                      int sub_cmd_id,
-                      int argc,
-                      uint16_t *argv);
-
-
-/** \brief Get the answer of a command.
- *  \param ufe: A device handle.
- *  \param board_id: Identifier (unique number) of the board, addressed by this command.
- *  \param command_id: Command identifier (unique number).
- *  \param sub_cmd_id: Subcommand identifier (unique number).
- *  \param argc: Number of argumants.
- *  \param argv: Intput location for the command's argumants data.
- *  \returns 0 on success, or a LIBUSB_ERROR / UFE_ERROR code on failure.
- */
-int get_command_answer( libusb_device_handle *ufe,
-                        int board_id,
-                        int command_id,
-                        int sub_cmd_id,
-                        int argc,
-                        uint16_t **argv);
-
-/** The value to be given to the \param sub_cmd_id of to functions send_command_req and
- * get_command_answer if the corresponding command has not Subcommand identifier
- */
-#define NO_SUB_CMD_ID -1
-
-
-/** \brief Send data to the device.
- *  \param ufe: A device handle.
- *  \param ep: 1 / 2 for EP1OUT / EP2OUT
- *  \param size: Size of the data to be transferred.
- *  \param data: Intput location for data to be transferred.
- *  \returns 0 on success, or a LIBUSB_ERROR / UFE_ERROR code on failure.
- */
-int ufe_user_set_sync( libusb_device_handle *ufe, int ep, int size, uint8_t *data);
-
-
-/** \brief Get data from the device.
- *  \param ufe: A device handle.
- *  \param ep: 1 / 2 for EP1IN / EP2IN.
- *  \param size: Size of the data to be transferred.
- *  \param data: Output location for data to be transferred.
- *  \returns 0 on success, or a LIBUSB_ERROR / UFE_ERROR code on failure.
- */
-int ufe_user_get_sync( libusb_device_handle *ufe, int ep, int size, uint8_t *data);
-
-
-/** Default timeout (in millseconds) during the command exchange communication. */
-#define UFE_CMD_TIMEOUT 1000
-
-
 /** List of the Command identifiers for the command requests and command answers */
 enum ufe_cmd_id {
   DATA_READOUT_CMD_ID     = 0x0,

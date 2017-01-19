@@ -50,13 +50,13 @@ int ufe_default_context(ufe_context **context) {
   ctx->readout_timeout_ = 100;
   ctx->verbose_ = 1;
 
+  if (*context && *context != ufe_context_handler) {
+    free(*context);
+  }
+
   if (ufe_context_handler) {
 
     free(ufe_context_handler);
-  }
-
-  if (*context) {
-    free(*context);
   }
 
   ufe_context_handler = ctx;
