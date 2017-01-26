@@ -1,4 +1,4 @@
-message("libufecpp-tests lib ...")
+message(" tests ...")
 
 # get list of all source files in this directory.
 AUX_SOURCE_DIRECTORY(.              TESTS_SOURCE_FILES)

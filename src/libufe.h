@@ -1,4 +1,5 @@
-/** This file is part of BabyMINDdaq software package. This software
+/*
+ * This file is part of BabyMINDdaq software package. This software
  * package is designed for internal use for the Baby MIND detector
  * collaboration and is tailored for this use primarily.
  *
@@ -13,12 +14,16 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with BabyMINDdaq.  If not, see <http://www.gnu.org/licenses/>.
- *
- *  \author   Yordan Karadzhov <Yordan.Karadzhov \at cern.ch>
- *            University of Geneva
- *
- *  \created  Oct 2016
+ * along with BabyMINDdaq. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+/**
+ *  \file    libufe.h
+ *  \brief   File containing an API for slow control and readout of the BabyMINDdaq
+ *  detector front-end board.
+ *  \author  Yordan Karadzhov
+ *  \date    Oct 2016
  */
 
 #ifndef LIBUFE_H
@@ -37,7 +42,7 @@ extern "C" {
 /** Baby MIND Front-end board USB product Id code. */
 #define BMFEB_PRODUCT_ID     0xc00
 
-// Version Id of the Baby MIND Front-end board firmware supported by this library.
+/** Version Id of the Baby MIND Front-end board firmware supported by this library. */
 #define BMFEB_FV             0x30
 
 /** \brief Structure representing a libufec session. */
@@ -60,6 +65,8 @@ struct ufe_context {
   /** LIBUSB context */
   libusb_context* usb_ctx_;
 };
+
+/** ufe_context type */
 typedef struct ufe_context ufe_context;
 
 
@@ -67,7 +74,7 @@ typedef struct ufe_context ufe_context;
  *  \param ctx: Optional output location for context pointer. Only valid on return code 0.
  *  \returns 0 on success, or a LIBUSB_ERROR / UFE_ERROR code on failure.
  */
-int ufe_default_context(ufe_context **context);
+int ufe_default_context(ufe_context **ctx);
 
 
 /** \brief Initialize libufec. This function must be called before calling any other libufec function.
@@ -149,7 +156,7 @@ void ufe_exit(ufe_context *ctx);
  *  \param board_id: Identifier (unique number) of the board, addressed by this command.
  *  \returns True if the board is reachable, else false.
  */
-bool ufe_ping(libusb_device_handle *dev_handle, uint8_t board_id);
+bool ufe_ping(libusb_device_handle *ufe, uint8_t board_id);
 
 
 /** \brief Gets the version Id codded in 2 bytes, one for the minor version and one for the
@@ -274,13 +281,11 @@ int ufe_apply_config(libusb_device_handle *ufe, int board_id, uint16_t *data);
 
 /** \brief Get data from the readout buffer.
  *  \param ufe: A device handle.
- *  \param board_id: Identifier (unique number) of the board, addressed by this command.
  *  \param data: Output location for data to be transferred.
- *  \param size: Size of the data to be transferred.ls
  *  \param actual: Actual size of the transferred data.
  *  \returns 0 on success, or a LIBUSB_ERROR / UFE_ERROR code on failure.
  */
-int ufe_read_buffer(libusb_device_handle *ufe, uint8_t* data,/* size_t size,*/ int *actual);
+int ufe_read_buffer(libusb_device_handle *ufe, uint8_t* data, int *actual);
 
 
 /** List of the Command identifiers for the command requests and command answers */
@@ -425,7 +430,6 @@ size_t ufe_get_custom_device_list( libusb_context *ctx,
 
 /** \brief Executes an action specified by the user over a list of usb devices selected according a criteria
  *  provided by the user. New session is created in the beginning and closed at the end.
- *  \param ctx: The context to operate on.
  *  \param cond_func: A function to be used for spellection of the devices, to be included in the list.
  *  \param arg: Argumant for the spellection function.
  *  \param user_func: A function defining the user action.
@@ -453,7 +457,6 @@ int ufe_on_all_boards_do(ufe_user_func user_func);
 
 /** \brief Executes an action specified by the user over a list of usb devices selected according a criteria
  *  provided by the user. To be called in an existing (already open) usb session.
- *  \param ctx: The context to operate on.
  *  \param cond_func: A function to be used for spellection of the devices, to be included in the list.
  *  \param arg: Argumant for the spellection function.
  *  \param user_func: A function defining the user action.

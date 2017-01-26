@@ -1,4 +1,5 @@
-/** This file is part of BabyMINDdaq software package. This software
+/*
+ * This file is part of BabyMINDdaq software package. This software
  * package is designed for internal use for the Baby MIND detector
  * collaboration and is tailored for this use primarily.
  *
@@ -13,12 +14,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with BabyMINDdaq.  If not, see <http://www.gnu.org/licenses/>.
- *
- *  \author   Yordan Karadzhov <Yordan.Karadzhov \at cern.ch>
- *            University of Geneva
- *
- *  \created  Nov 2016
+ * along with BabyMINDdaq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 
@@ -91,13 +87,6 @@ bool is_bm_feb_with_id(libusb_device *dev, int board_id) {
 crc_context crc16_context_handler;
 crc_context crc21_context_handler;
 extern ufe_context *ufe_context_handler;
-
-int ufe_get_verbose() {
-  if (!ufe_context_handler)
-    return 3;
-
-  return ufe_context_handler->verbose_;
-}
 
 int ufe_send_command_req( libusb_device_handle *ufe,
                       int board_id,
@@ -482,6 +471,13 @@ uint32_t crc( crc_context *this_crc,
     l_crc = reflect(l_crc, this_crc->size_);
 
   return l_crc;
+}
+
+int ufe_get_verbose() {
+  if (!ufe_context_handler)
+    return 3;
+
+  return ufe_context_handler->verbose_;
 }
 
 int ufe_debug_print(const char *fmt, ...) {

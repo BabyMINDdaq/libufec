@@ -11,6 +11,8 @@ set(EXECUTABLE_OUTPUT_PATH "${CMAKE_SOURCE_DIR}/bin")
 include(${CMAKE_BINARY_DIR}/FindLibUsb.cmake)
 include(${CMAKE_BINARY_DIR}/FindCppUnit.cmake)
 
+find_package(Doxygen)
+
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -O3")
 # set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lpthread")
 
@@ -53,3 +55,15 @@ endif (CPPUNIT_FOUND)
 set(THIS_USER $ENV{USER})
 configure_file(  ${CMAKE_BINARY_DIR}/89-ufe-usb.rules.cmake
                  ${CMAKE_BINARY_DIR}/89-ufe-usb.rules)
+
+
+if (_DOXYGEN_DOC AND DOXYGEN_FOUND)
+
+  message(" doxygen documentation ...\n")
+  add_custom_target(doc ALL)
+  add_custom_command(TARGET doc
+        COMMAND doxygen dox_config
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/doc)
+
+endif ()
+

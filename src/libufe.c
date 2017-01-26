@@ -1,4 +1,5 @@
-/** This file is part of BabyMINDdaq software package. This software
+/*
+ * This file is part of BabyMINDdaq software package. This software
  * package is designed for internal use for the Baby MIND detector
  * collaboration and is tailored for this use primarily.
  *
@@ -13,12 +14,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with BabyMINDdaq.  If not, see <http://www.gnu.org/licenses/>.
- *
- *  \author   Yordan Karadzhov <Yordan.Karadzhov \at cern.ch>
- *            University of Geneva
- *
- *  \created  Oct 2016
+ * along with BabyMINDdaq. If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <string.h>

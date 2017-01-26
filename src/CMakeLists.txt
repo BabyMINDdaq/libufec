@@ -13,3 +13,5 @@ else (_STATIC)
   target_link_libraries(ufec ${LIBUSB_LIBRARY})
 
 endif ()
+
+

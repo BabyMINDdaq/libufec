@@ -1,4 +1,5 @@
-/** This file is part of BabyMINDdaq software package. This software
+/*
+ * This file is part of BabyMINDdaq software package. This software
  * package is designed for internal use for the Baby MIND detector
  * collaboration and is tailored for this use primarily.
  *
@@ -13,12 +14,15 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with BabyMINDdaq.  If not, see <http://www.gnu.org/licenses/>.
- *
- *  \author   Yordan Karadzhov <Yordan.Karadzhov \at cern.ch>
- *            University of Geneva
- *
- *  \created  Oct 2016
+ * along with BabyMINDdaq. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+/**
+ *  \file    libufe-core.h
+ *  \brief   File containing some core functions used by the API.
+ *  \author  Yordan Karadzhov
+ *  \date    Oct 2016
  */
 
 #ifndef UFE_CORE_H
@@ -40,6 +44,7 @@ extern "C" {
 
 /** \brief Checks the type of the device.
  *  \param dev: A device handle.
+ *  \param dummy_arg: Not used.
  *  \returns True if this is a UFE device, else false.
  */
 bool is_ufe(libusb_device *dev, int dummy_arg);
@@ -47,6 +52,7 @@ bool is_ufe(libusb_device *dev, int dummy_arg);
 
 /** \brief Checks the type of the device.
  *  \param dev: A device handle.
+ *  \param dummy_arg: Not used.
  *  \returns True if this device is a Baby MIND FEB, else false.
  */
 bool is_bm_feb(libusb_device *dev, int dummy_arg);
@@ -54,7 +60,7 @@ bool is_bm_feb(libusb_device *dev, int dummy_arg);
 
 /** \brief Checks the type of the device.
  *  \param dev: A device handle.
- *  \param command_id: Command identifier (unique number).
+ *  \param board_id: Board identifier (unique number), addressed by this command.
  *  \returns True if a Baby MIND FEB with this Id is connected to this device, else false.
  */
 bool is_bm_feb_with_id(libusb_device *dev, int board_id);
@@ -93,9 +99,12 @@ int ufe_get_command_answer( libusb_device_handle *ufe,
                             int argc,
                             uint16_t **argv);
 
-/** The value to be given to the \param sub_cmd_id of to functions send_command_req and get_command_answer
- if the corresponding command has not Subcommand identifier */
+/** The value to be given to the parameter sub_cmd_id of the functions send_command_req and get_command_answer
+ if the corresponding command has not Subcommand identifier. */
 #define NO_SUB_CMD_ID -1
+
+/** . */
+#define CLASS_REQUEST 0x20
 
 
 /** \brief Send data to the device.
@@ -118,18 +127,33 @@ int ufe_user_set_sync( libusb_device_handle *ufe, int ep, int size, uint8_t *dat
 int ufe_user_get_sync( libusb_device_handle *ufe, int ep, int size, uint8_t *data);
 
 
-int ufe_get_verbose();
-
+/** \brief Print a degging message.
+ *  \param fmt: Formated string (the message).
+ *  \returns The number of characters that are printed.
+ */
 int ufe_debug_print(const char *fmt, ...);
 
+
+/** \brief Print an info message.
+ *  \param fmt: Formated string (the message).
+ *  \returns The number of characters that are printed.
+ */
 int ufe_info_print(const char *fmt, ...);
 
+
+/** \brief Print a warning message.
+ *  \param fmt: Formated string (the message).
+ *  \returns The number of characters that are printed.
+ */
 int ufe_warning_print(const char *fmt, ...);
 
+
+/** \brief Print an error message.
+ *  \param fmt: Formated string (the message).
+ *  \returns The number of characters that are printed.
+ */
 int ufe_error_print(const char *fmt, ...);
 
-
-#define CLASS_REQUEST        0x20
 
 enum ufe_request_types {
   UFE_GET_VERSION_REQ   = 0x20,
@@ -178,28 +202,65 @@ enum ufe_setcongig_validate_codes {
 };
 
 
+/** \brief Structure representing a CRC calculation algorithm. */
 struct crc_context {
+  /** .. */
   uint32_t  polynomial_;
+
+  /** .. */
   uint8_t   size_;
+
+  /** .. */
   uint32_t  initRemainder_;
+
+  /** .. */
   uint32_t  finalXor_;
+
+  /** .. */
   bool      reflectDin_;
+
+  /** .. */
   bool      reflectCRC_;
+
+  /** .. */
   uint32_t  mask_;
+
+  /** .. */
   uint32_t *table_;
 };
+
+/** crc_context type */
 typedef struct crc_context crc_context;
 
-
+/** CRC calculation types. */
 enum crc_types {
+  /** .. */
   CRC_CCITT_11021,
+
+  /** Standard 16-bits CRC. */
   CRC_16_18005,
+
+  /** 21-bits CRC. BABY-MIND Readout TDM beacons. */
   CRC_21_21BF1F,
+
+  /** 16-bits CRC optimized for HD4. BABY-MIND Protocol GET/SET Config. */
   CRC_16_1A2EB,
+
+  /** Standard 32-bits Ethernet CRC. */
   CRC_32_104C11DB7
 };
 
 
+/** \brief Initialize the Cyclic Redundancy Check (CRC) calculation algorithm. This function
+ *  must be called once in the beginning.
+ *  \param this_crc: Input/output location for the CRC calculation algorithm context pointer.
+ *  \param x_polynomial: .
+ *  \param x_size: .
+ *  \param x_initRemainder: .
+ *  \param x_finalXor: .
+ *  \param x_reflectDin: .
+ *  \param x_reflectCRC: .
+ */
 void ufe_crc_init( crc_context *this_crc,
                    uint32_t x_polynomial,
                    uint8_t  x_size,
@@ -208,46 +269,51 @@ void ufe_crc_init( crc_context *this_crc,
                    bool x_reflectDin,
                    bool x_reflectCRC);
 
+
+/** \brief Calculates the Cyclic Redundancy Check (CRC).
+ *  \param this_crc: Input location for the CRC calculation algorithm context pointer.
+ *  \param message: Input location for the data block.
+ *  \param length: The size of the data block.
+ */
 uint32_t crc( crc_context *this_crc,
               uint8_t *message,
               ssize_t length);
 
 
-/** 16-bits CRC optimized for HD4 @ 32751-bits = 2046 word16
- * (1A2EB = 0xD175 on https://users.ece.cmu.edu/~koopman/crc/index.html)
- * BABY-MIND Protocol GET/SET Config
+/** \brief 16-bits CRC optimized for HD4 @ 32751-bits = 2046 word16(1A2EB = 0xD175)
+ *  BABY-MIND Protocol GET/SET Config.
+ *  \see https://users.ece.cmu.edu/~koopman/crc/index.html
  */
 #define CRC_16_1A2EB_INIT(crc_ctx) \
 ufe_crc_init(crc_ctx, 0xA2EB, 16, 0xFFFF, 0x0000, true, false);
 
 
-/** 21-bits CRC optimized for HD4 @ 1048554-bits = 32767 word32
- * (21bf1f = 0x10df8f on https://users.ece.cmu.edu/~koopman/crc/index.html)
- *  BABY-MIND Readout TDM beacons
+/** \brief 21-bits CRC optimized for HD4 @ 1048554-bits = 32767 word32 (21bf1f = 0x10df8f)
+ *  BABY-MIND Readout TDM beacons.
+ *  \see https://users.ece.cmu.edu/~koopman/crc/index.html
  */
 #define CRC_21_21BF1F_INIT(crc_ctx) \
 ufe_crc_init(crc_ctx, 0x21BF1F, 21, 0xFFFFFF, 0x000000, true, false);
 
 
-/** Standard CCITT 16-bits CRC
- * (11021 = 0x8810 on https://users.ece.cmu.edu/~koopman/crc/index.html)
+/** \brief Standard CCITT 16-bits CRC (11021 = 0x8810)
+ * \see https://users.ece.cmu.edu/~koopman/crc/index.html
  */
 #define CRC_CCITT_11021_INIT(crc_ctx) \
 ufe_crc_init(crc_ctx, 0x1021, 16, 0xFFFF, 0x0000, false, false);
 
 
-/** Standard 16-bits CRC.
+/** \brief Standard 16-bits CRC.
  */
 #define CRC_16_18005_INIT(crc_ctx) \
 ufe_crc_init(crc_ctx, 0x8005, 16, 0x0000, 0x0000, true, true);
 
 
-/** Standard 32-bits Ethernet CRC
- * (104C11DB7 = 0x82608edb on https://users.ece.cmu.edu/~koopman/crc/index.html)
+/** \brief Standard 32-bits Ethernet CRC (104C11DB7 = 0x82608edb)
+ *  \see on https://users.ece.cmu.edu/~koopman/crc/index.html
  */
 #define CRC_32_104C11DB7_INIT(crc_ctx) \
 ufe_crc_init(crc_ctx, 0x04C11DB7, 32, 0xFFFFFFFF, 0xFFFFFFFF, true, true);
-
 
 #ifdef __cplusplus
 }

@@ -68,6 +68,10 @@ void TestLibUfec::TestContext() {
   CPPUNIT_ASSERT( ctx_2->verbose_ == 1 );
   CPPUNIT_ASSERT( ctx_2->readout_buffer_size_ == 1024*32 );
   CPPUNIT_ASSERT( ctx_2->readout_timeout_ == 100 );
+
+  ufe_init(&ctx_2);
+  ufe_set_verbose(ctx_2, 3, -1);
+  CPPUNIT_ASSERT( ctx_2->verbose_ == -1 );
 }
 
 void TestLibUfec::TestPrint() {

@@ -38,8 +38,14 @@ printed.
 1.2 A shared library will be build by default. In order to build
 a static library add -D_STATIC=1.
 
-Example:
-cmake -D_VERBOSE=2 -D_STATIC=1 ../
+1.3 In order to create a Doxygen documentation add -D_DOXYGEN_DOC=1.
+
+1.4 Examples:
+
+cmake -D_STATIC=1 ../
+
+cmake -D_VERBOSE=3 -D_DOXYGEN_DOC=1 ../
+
 
 2. In order to enable the usage of the UFE devices do as root:
 
