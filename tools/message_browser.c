@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
 
 #include <zmq.h>
 
@@ -31,7 +32,18 @@
 #include "libufe-core.h"
 #include "libufe-tools.h"
 
+void *context, *subscriber;
+
+void intHandler(int dummy) {
+  zmq_close (subscriber);
+  zmq_ctx_destroy (context);
+
+  exit(0);
+}
+
 int main (int argc, char **argv) {
+
+  signal(SIGINT, intHandler);
 
 //   int hist_arg  = get_arg_val('h', "hist-name",  argc, argv);
   int ip_arg    = get_arg_val('i', "ip-address", argc, argv);
