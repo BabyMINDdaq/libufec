@@ -25,6 +25,11 @@
 
 #include <libusb-1.0/libusb.h>
 
+#ifdef ZMQ_ENABLE
+  #include <zmq.h>
+  #include <ifaddrs.h>
+#endif
+
 #include "libufe.h"
 #include "libufe-core.h"
 #include "libufe-tools.h"
@@ -59,6 +64,11 @@ int ufe_default_context(ufe_context **context) {
   *context = ctx;
   (*context)->usb_ctx_ = NULL;
 
+#ifdef ZMQ_ENABLE
+  ctx->zmq_ctx_ = NULL;
+  ctx->publisher_socket_ = NULL;
+#endif
+
   return 0;
 }
 
@@ -80,6 +90,17 @@ int ufe_init(ufe_context **context) {
 
   CRC_16_1A2EB_INIT(&crc16_context_handler);
   CRC_21_21BF1F_INIT(&crc21_context_handler);
+
+#ifdef ZMQ_ENABLE
+  (*context)->zmq_ctx_ = zmq_ctx_new();
+  (*context)->publisher_socket_ = zmq_socket ((*context)->zmq_ctx_, ZMQ_PUB);
+  int status = zmq_bind((*context)->publisher_socket_, "tcp://*:6110");
+  if (status != 0)
+    return UFE_NETWORK_ERROR;
+
+  sleep(1);
+  ufe_debug_print("ZMQ socket created.");
+#endif
 
   return libusb_init(&(*context)->usb_ctx_);
 }
@@ -149,9 +170,17 @@ void ufe_exit(ufe_context *ctx) {
   ufe_debug_print("Closing the session.");
   if (ctx) {
     libusb_exit(ctx->usb_ctx_);
+#ifdef ZMQ_ENABLE
+    zmq_close(ctx->publisher_socket_);
+    zmq_ctx_destroy(ctx->zmq_ctx_);
+#endif
     free(ctx);
   } else if (ufe_context_handler) {
     libusb_exit(ufe_context_handler->usb_ctx_);
+#ifdef ZMQ_ENABLE
+    zmq_close(ctx->publisher_socket_);
+    zmq_ctx_destroy(ctx->zmq_ctx_);
+#endif
     free(ufe_context_handler);
   }
   ufe_context_handler = NULL;

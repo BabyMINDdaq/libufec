@@ -154,6 +154,22 @@ int ufe_warning_print(const char *fmt, ...);
  */
 int ufe_error_print(const char *fmt, ...);
 
+#ifdef ZMQ_ENABLE
+
+/** \brief Convert C string to 0MQ string and send to socket
+ *  \param socket: Intput location for the socket.
+ *  \param message: Intput location for the message.
+ */
+int s_send(void *socket, char *message);
+
+/** \brief Receive 0MQ string from socket and convert into C string
+ *  Caller must free returned string.
+ *  \param socket: Intput location for the socket.
+ *  \return NULL if the context is being terminated.
+ */
+char* s_recv(void *socket);
+
+#endif // ZMQ_ENABLE
 
 enum ufe_request_types {
   UFE_GET_VERSION_REQ   = 0x20,

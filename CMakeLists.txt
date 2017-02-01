@@ -10,6 +10,7 @@ set(EXECUTABLE_OUTPUT_PATH "${CMAKE_SOURCE_DIR}/bin")
 
 include(${CMAKE_BINARY_DIR}/FindLibUsb.cmake)
 include(${CMAKE_BINARY_DIR}/FindCppUnit.cmake)
+include(${CMAKE_BINARY_DIR}/FindZeroMQ.cmake)
 
 find_package(Doxygen)
 
@@ -35,6 +36,12 @@ if (_VERBOSE GREATER 2)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DUFE_DEBUG")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUFE_DEBUG")
 endif (_VERBOSE GREATER 2)
+
+if (DEFINED _USE_NETWORK_ZMQ)
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DZMQ_ENABLE")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DZMQ_ENABLE")
+  message(STATUS "networking enabled\n")
+endif()
 
 include_directories(  ${CMAKE_SOURCE_DIR}/src)
 

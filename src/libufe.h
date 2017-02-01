@@ -64,6 +64,19 @@ struct ufe_context {
 
   /** LIBUSB context */
   libusb_context* usb_ctx_;
+
+#ifdef ZMQ_ENABLE
+
+  /** ZeroMQ  context */
+  void *zmq_ctx_;
+
+  /** ZeroMQ  socket */
+  void *publisher_socket_;
+
+  /**  Host name  */
+  char* host_name_;
+
+#endif
 };
 
 /** ufe_context type */
@@ -308,7 +321,8 @@ enum ufe_error {
   UFE_INVALID_CMD_ANSWER_ERROR = -15,
   UFE_INVALID_ARG_ERROR        = -16,
   UFE_NOT_FOUND_ERROR          = -17,
-  UFE_FIRMWARE_ERROR           = -18
+  UFE_FIRMWARE_ERROR           = -18,
+  UFE_NETWORK_ERROR            = -18,
 };
 
 
