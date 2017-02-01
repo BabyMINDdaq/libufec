@@ -11,7 +11,7 @@ MESSAGE(" Looking for zeromq ...")
 # find_path( ZMQ_INCLUDE_DIR NAMES  zmq.hpp PATHS /usr/include/)
 # find_library( ZMQ_LIBRARY NAMES libzmq.so  PATHS /user/lib/)
 
-find_path( ZMQ_INCLUDE_DIR NAMES  zmq.hpp )
+find_path( ZMQ_INCLUDE_DIR NAMES  zmq.h )
 find_library( ZMQ_LIBRARY NAMES libzmq.so )
 
 IF (ZMQ_INCLUDE_DIR AND ZMQ_LIBRARY)
