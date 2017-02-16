@@ -9,7 +9,12 @@
 MESSAGE(" Looking for LibUsb-1.0 ...")
 
 find_path( LIBUSB_INCLUDE_DIR NAMES libusb-1.0/libusb.h)
-find_library( LIBUSB_LIBRARY NAMES usb-1.0)
+
+IF (_STATIC)
+  find_library( LIBUSB_LIBRARY NAMES libusb-1.0.a)
+ELSE (_STATIC)
+  find_library( LIBUSB_LIBRARY NAMES usb-1.0)
+ENDIF (_STATIC)
 
 IF (LIBUSB_INCLUDE_DIR AND LIBUSB_LIBRARY)
 

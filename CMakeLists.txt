@@ -14,7 +14,7 @@ include(${CMAKE_BINARY_DIR}/FindZeroMQ.cmake)
 
 find_package(Doxygen)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -O3")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -pthread -ludev -O3")
 # set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lpthread")
 
 if (NOT DEFINED _VERBOSE)

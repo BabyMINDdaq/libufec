@@ -67,14 +67,14 @@ struct ufe_context {
 
 #ifdef ZMQ_ENABLE
 
-  /** ZeroMQ  context */
+  /** ZeroMQ context */
   void *zmq_ctx_;
 
   /** ZeroMQ  socket */
   void *publisher_socket_;
 
   /**  Host name  */
-  char* host_name_;
+  char host_name_[64];
 
 #endif
 };

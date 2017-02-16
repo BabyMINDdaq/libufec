@@ -489,21 +489,21 @@ int ufe_get_verbose() {
 #ifdef ZMQ_ENABLE
 
 int s_send(void *socket, char *message) {
-  int size = zmq_send (socket, message, strlen (message), 0);
+  int size = zmq_send(socket, message, strlen (message), 0);
   return size;
 }
 
 char* s_recv (void *socket) {
   char buffer [256];
-  int size = zmq_recv (socket, buffer, 255, 0);
+  int size = zmq_recv(socket, buffer, 255, 0);
   if (size == -1)
     return NULL;
   buffer[size] = '\0';
 
 #if (defined (WIN32))
-  return strdup (buffer);
+  return strdup(buffer);
 #else
-  return strndup (buffer, sizeof(buffer) - 1);
+  return strndup(buffer, sizeof(buffer) - 1);
 #endif
   // remember that the strdup family of functions use malloc/alloc for space for the new string.  It must be manually
   // freed when you are done with it.  Failure to do so will allow a heap attack.
@@ -515,7 +515,12 @@ int ufe_debug_print(const char *fmt, ...) {
   int ret = 0;
 #ifdef UFE_DEBUG
   if (ufe_get_verbose() >= 3) {
-    char message[256]="### Debug: ";
+    char message[256]="### Debug";
+#ifdef ZMQ_ENABLE
+    strcat(message, " from ");
+    strcat(message, ufe_context_handler->host_name_);
+#endif
+    strcat(message, ": ");
     char message_core[256];
     va_list myargs;
     va_start(myargs, fmt);
@@ -523,6 +528,10 @@ int ufe_debug_print(const char *fmt, ...) {
     strcat(message, message_core);
     strcat(message, "\n");
     printf("%s", message);
+#ifdef ZMQ_ENABLE
+    s_send(ufe_context_handler->publisher_socket_, message);
+#endif
+    va_end(myargs);
   }
 #endif
   return ret;
@@ -532,8 +541,12 @@ int ufe_info_print(const char *fmt, ...) {
   int ret = 0;
 #ifdef UFE_INFO
   if (ufe_get_verbose() >=2 ) {
-    printf("+++ Info: ");
-    char message[256]="+++ Info: ";
+    char message[256]="+++ Info";
+#ifdef ZMQ_ENABLE
+    strcat(message, " from ");
+    strcat(message, ufe_context_handler->host_name_);
+#endif
+    strcat(message, ": ");
     char message_core[256];
     va_list myargs;
     va_start(myargs, fmt);
@@ -541,6 +554,10 @@ int ufe_info_print(const char *fmt, ...) {
     strcat(message, message_core);
     strcat(message, "\n");
     printf("%s", message);
+#ifdef ZMQ_ENABLE
+    s_send(ufe_context_handler->publisher_socket_, message);
+#endif
+    va_end(myargs);
   }
 #endif
   return ret;
@@ -550,7 +567,12 @@ int ufe_warning_print(const char *fmt, ...) {
   int ret = 0;
 #ifdef UFE_WARNING
   if (ufe_get_verbose()>=1) {
-    char message[256]="\n!!!Warning: ";
+    char message[256]="\n!!!Warning";
+#ifdef ZMQ_ENABLE
+    strcat(message, " from ");
+    strcat(message, ufe_context_handler->host_name_);
+#endif
+    strcat(message, ": ");
     char message_core[256];
     va_list myargs;
     va_start(myargs, fmt);
@@ -570,7 +592,12 @@ int ufe_warning_print(const char *fmt, ...) {
 int ufe_error_print(const char *fmt, ...) {
   int ret = 0;
   if (ufe_get_verbose() >=0 ) {
-    char message[256]="\n!!!Error: ";
+    char message[256]="\n!!!Error";
+#ifdef ZMQ_ENABLE
+    strcat(message, " from ");
+    strcat(message, ufe_context_handler->host_name_);
+#endif
+    strcat(message, ": ");
     char message_core[256];
     va_list myargs;
     va_start(myargs, fmt);

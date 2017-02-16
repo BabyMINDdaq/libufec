@@ -98,6 +98,7 @@ int ufe_init(ufe_context **context) {
   if (status != 0)
     return UFE_NETWORK_ERROR;
 
+  gethostname((*context)->host_name_, sizeof((*context)->host_name_));
   sleep(1);
   ufe_debug_print("ZMQ socket created.");
 #endif
@@ -721,7 +722,6 @@ int ufe_in_session_on_device_do(ufe_cond_func cond_func, int arg, ufe_user_func 
       ufe_error_print("cannot open device.");
       return 1;
     }
-
 
     ufe_debug_print("device opened.");
     ufe_debug_print("speed: %i\n", libusb_get_device_speed(febs[i]));
